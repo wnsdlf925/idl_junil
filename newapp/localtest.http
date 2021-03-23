@@ -1,0 +1,25 @@
+
+##
+GET http://localhost:3000/test HTTP/1.1
+content-type: application/json
+
+###
+POST http://localhost:3000/login HTTP/1.1
+content-type: application/json
+
+{
+   "pw" : "45687931",
+   "email" : "weddewwer@dsf.dfq"
+}
+
+###
+GET http://localhost:3000/logout HTTP/1.1
+content-type: application/json
+
+###
+GET http://localhost:3000/chosenAgree HTTP/1.1
+content-type: application/json
+
+{
+    "chose": 1
+}
