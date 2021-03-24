@@ -24,10 +24,12 @@ require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 var dt = new Date();
 
+
 //db연결
 var connection = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
+  port: process.env.DB_PORT,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   multipleStatements: true
@@ -48,7 +50,7 @@ app.use(session({
   resave: false,
   store: sessionStore,
   saveUninitialized: true,
-  cookie: { maxAge: 60000 * 30 }
+  cookie: { maxAge: 1000*60  }
 
 }));
 
@@ -74,40 +76,23 @@ const smtpTransport = nodemailer.createTransport({
 connection.connect()
 
 
-
-
 //**나중에 res.send 프론트에 맞게 설정하기**
-//전화번호 암호화 복호화
-//비밀번호 암호화
-
 
 
 //15분마다 인증키시간 초기화--------------------------------------------------------------------------------------------------
 const authReset = schedule.scheduleJob('0 15,30,45,0 * * * *', function () {
 
   var reDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes() - 5) + ':' + (dt.getSeconds());
-  connection.query('SET SQL_SAFE_UPDATES = 0', function (err, results) {
-    if (!err) {
-      console.log("SET SQL_SAFE_UPDATES=0: 성공")
-    } else {
-      console.log("err: " + err)
-    }
-  })
-  connection.query("UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_date <" + "'" + reDate + "'", function (err, results) {
+  var sql = "UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_date < ? ;"+ "UPDATE pw_find SET pw_edit = 0, pw_dispose = 1 WHERE  pw_date < ? ;"
+  var param = [reDate,reDate]
+  connection.query(sql,param, function (err, results) {
     if (!err) {
       console.log("UPDATE: 성공")
     } else {
       console.log("err: " + err)
     }
   })
-  connection.query('SET SQL_SAFE_UPDATES = 1', function (err, results) {
-    if (!err) {
-      console.log("SET SQL_SAFE_UPDATES = 1: 성공")
-    } else {
-      console.log("err: " + err)
-    }
-
-  })
+  
   console.log('매 15분에 실행');
 });
 //--------------------------------------------------------------------------------------------------------------------------
@@ -136,16 +121,30 @@ function chkSession(req, res, next) {
 
   console.log(req.session.cookie._expires)
 
-  /* 만료시간 확인 후 세션 삭제 
-  
-  if ( 세션 확인 ) {
+  // 만료시간 확인 후 세션 삭제 
+  var nowDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
+  if ( req.session.cookie._expires< nowDate) {
+    
+    console.log('만료됨')
+    req.session.destroy(function (err) {
+      if(!err){
+        console.log('파과됨')
 
-    만약 만료라면
+      }else{
+        console.log('err ' +err)
+      }
+      
+    });
+
+
+    
     return res.send( '세션만료' )
   }
-
-  return next()
-  */
+  console.log('만료안됨')
+  console.log('req.session.cookie._expires: '+req.session.cookie._expires)
+  console.log('DATE: ' +nowDate)
+ 
+  
 
   return next()
 }
@@ -255,16 +254,17 @@ app.post('/join', (req, res) => {
       if (!err) {
         console.log(rows)
         console.log("DB Connection Succeeded")
+        res.send('DB Connection Succeeded')
 
       } else {
         console.log("DB Connection Failed")
 
-
+        res.send('DB Connection Failed')
         console.log(err)
       }
     })
 
-    res.send('Hello World!')
+    
   } else {
     res.send('전화번호나 이메일이 형식에 맞지 않습니다.')
   }
@@ -272,7 +272,7 @@ app.post('/join', (req, res) => {
 
 
 //이메일 중복확인 및 인증url보내기
-
+//페이지는 인증은 발송했습니다 출력
 app.post('/joinAuth', (req, res) => {
 
   //인증키 여러번 보냈는지 쿼리
@@ -290,9 +290,9 @@ app.post('/joinAuth', (req, res) => {
               var ran = Math.random().toString(36).substr(2, 8);
 
               //이메일 인증 테이블에 넣기
-              var strdate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
+              var emDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
               var sql = "INSERT INTO email_auth (email_key, email_date, rec_email) VALUE(?,?,?)"
-              var param = [ran, strdate, req.body.rec_email]
+              var param = [ran, emDate, req.body.rec_email]
               connection.query(sql, param, function (err, results) {
                 if (!err) {
                   SendCheckEmail(req.body.rec_email, ran, 1)
@@ -313,10 +313,7 @@ app.post('/joinAuth', (req, res) => {
             }
 
             console.log("DB Connection Succeeded중복확인")
-            res.send('DB Connection Succeeded중복확인')
-
-
-
+          
           } else {
             console.log("DB Connection Failed중복확인")
             res.send('DB Connection Failed중복확인')
@@ -324,9 +321,7 @@ app.post('/joinAuth', (req, res) => {
 
         })
         console.log("리솔트가 널 : " + results)
-        res.send("리솔트가 널 : " + results)
-
-
+        
       } else {
         console.log("리솔트 : " + results)
         console.log("인증키 두번누름")
@@ -363,6 +358,7 @@ app.get('/check', (req, res) => {
               res.send('에러!')
             } else {
               //res.redirect("/join")
+              req.session.idsend = req.query.send
               console.log("리다이렉션.")
               res.send('리다이렉션')
             }
@@ -393,11 +389,11 @@ app.post('/login', (req, res) => {
   connection.query("SELECT * from member WHERE member_email = '" + req.body.email + "'and member_pw = '" + Pass(req.body.pw) + "' and member_secede = " + 0, function (err, result) {
     if (!err) {
 
-      if (result != null) {
+      if (result != null ) {
 
-        req.session.myid = result[0].member_email
-        req.session.mypw = result[0].member_pw
-        req.session.displayName = result[0].member_name
+        req.session.myEmail = result[0].member_email
+        req.session.myPw = result[0].member_pw
+        req.session.myName = result[0].member_name
         req.session.save(() => {
           console.log("리다이렉션")
           console.log("이름" + req.sessionID)
@@ -424,30 +420,48 @@ app.post('/login', (req, res) => {
 app.get('/logout', (req, res) => {
 
   req.session.destroy(function (err) {
-    console.log("로그아웃", err);
+    console.log("로그아웃");
     res.send('로그아웃');
   });
 
 
 })
 //약관동의
-app.get('/chosenAgree', (req, res) => {
+app.get('/chosenAgree', chkSession, (req, res) => {
+
+  
 
   if (req.query.chose == 1) {
     req.session.chosenAgree = 1
     console.log(req.session.chosenAgree)
-    console.log(req.session.myid)
+    console.log('약관동의: '+req.session.cookie._expires)
+    res.send('약관 선택')
 
 
   } else {
     req.session.chosenAgree = 0
     console.log(req.session.chosenAgree)
+    res.send('약관 선택안함')
   }
 
-  res.send('성공')
 })
 
-//회원탈퇴 탈퇴 
+//세션연습
+app.get('/test', chkSession,(req, res) => {
+
+  
+   
+    console.log('test')
+    res.send('test')
+
+
+  
+    
+  
+
+  
+})
+
 
 //비밀번호 찾기
 app.post('/findPw', (req, res) => {
@@ -475,13 +489,14 @@ app.post('/findPw', (req, res) => {
 
               //비번 인증 테이블에 넣기
               var ran = Math.random().toString(36).substr(2, 8);
-              var pwdate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
+              var pwDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
               var sql = "INSERT INTO pw_find (pw_key, pw_date, member_email) VALUE(?,?,?)"
-              var param = [ran, pwdate, req.body.pw_email]
+              var param = [ran, pwDate, req.body.pw_email]
               console.log("paramL "+param)
               connection.query(sql, param, function (err, result) {
                 if (!err) {
-                  SendCheckEmail(req.body.rec_email, ran, 0)
+                  SendCheckEmail(req.body.pw_email, ran, 0)
+                  
                   console.log("DB Connection Succeeded 비번 테이블")
                   res.send('비번 테이블')
                 } else {
@@ -523,31 +538,26 @@ app.post('/findPw', (req, res) => {
   })
 })
 
-//비밀번호 인증 내일
-app.get('/checkpw', (req, res) => {
+//비밀번호 인증 
+app.get('/checkPw', (req, res) => {
 
-  connection.query("SELECT * FROM ideapf.email_auth WHERE email_key = " + "'" + req.query.send + "'", function (err, results, fields) {
+  connection.query("SELECT * FROM pw_find WHERE pw_key = " + "'" + req.query.send + "'", function (err, results, fields) {
 
     if (err) {
       console.log(err)
+      res.send('에러')
     } else {
       console.log('results: ' + results)
-      //이메일 인증키가 있다면
-      if (results[0].email_key == req.query.send) {
+      //비밀번호 인증키가 있다면
+      if (results[0].pw_key == req.query.send) {
 
         //인증키가 유효하다면
-        if (results[0].email_auth_flag == 0 && results[0].email_dispose == 0) {
-          connection.query("UPDATE email_auth SET email_auth_flag = 1, email_dispose = 1 WHERE  email_key_id =" + results[0].email_key_id, function (err, result) {
-            if (err) {
-              console.log(err)
-              res.send('에러!')
-            } else {
-              //res.redirect("/join")
-              console.log("리다이렉션.")
-              res.send('리다이렉션')
-            }
-          })
-
+        if (results[0].pw_edit == 0 && results[0].pw_dispose == 0) {
+          //res.redirect("/resetpw")
+          req.session.pwSend = req.query.send
+          console.log("리다이렉션.")
+          res.send('리다이렉션')
+          
         } else {
           console.log("이미 만료된 번호입니다. 다시 인증하셈")
           res.send('이미 만료된 번호입니다. 다시 인증하셈')
@@ -559,15 +569,65 @@ app.get('/checkpw', (req, res) => {
       }
     }
   })
-
+  
 })
 
 
+//비밀번호 재설정
+app.patch('/resetPw',(req,res)=>{
+  
+  var sql = "UPDATE member SET member_pw = ? WHERE member_email IN (select member_email from pw_find where pw_key = ?)"
+  var param = [Pass(req.body.reset_pw), req.session.pwSend]
+  console.log('req.body.reset_pw: '+req.body.reset_pw)
+  console.log(' req.session.pwSend: '+ req.session.pwSend)
+  connection.query(sql,param,function(err){
 
+    if(!err){
+      connection.query("UPDATE pw_find SET pw_edit = 1, pw_dispose = 1 WHERE  pw_key= '" + req.session.pwSend+"'", function (err, result) {
+        if (!err) {
+          console.log('성공!')
+          res.send('성공!')
+        } else {
+          console.log(err)
+          
+          res.send('에러!')
+        }
+      })
+      
+      
+    }else{
+      res.send("실패")
+      console.log("실패")
+    }
+  })
+  
+  
+})
 
+//회원탈퇴
 
+app.patch('/member/secede',(req,res)=>{
+  connection.query("UPDATE member SET member_secede = 1 WHERE  member_email= '" + req.session.myEmail+"'", function (err, result) {
+    if (!err) {
 
+      req.session.destroy(function (err) {
+        if(!err){
 
+          console.log("회원탈퇴");
+          res.send('성공!')
+        }else{
+          console.log("세션에러", err);
+          res.send('세션에러!')
+        }
+      });
+      
+    } else {
+      console.log(err)
+      res.send('에러!')
+    }
+  })
+
+})
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
