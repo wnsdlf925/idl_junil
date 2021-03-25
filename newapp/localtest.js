@@ -20,6 +20,7 @@ const port = process.env.SERVER_PORT
 
 //시간
 var moment = require('moment');
+const { now } = require('moment')
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 var dt = new Date();
@@ -41,6 +42,8 @@ let sessionStore = new MySQLStore({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  clearExpired: true,
+  checkExpirationInterval:6000000
 
 })
 
@@ -50,7 +53,8 @@ app.use(session({
   resave: false,
   store: sessionStore,
   saveUninitialized: true,
-  cookie: { maxAge: 1000*60  }
+  cookie: { maxAge: 1000*60*5  },
+  rolling: true
 
 }));
 
@@ -72,8 +76,8 @@ const smtpTransport = nodemailer.createTransport({
   }
 });
 
-
 connection.connect()
+
 
 
 //**나중에 res.send 프론트에 맞게 설정하기**
@@ -81,8 +85,9 @@ connection.connect()
 
 //15분마다 인증키시간 초기화--------------------------------------------------------------------------------------------------
 const authReset = schedule.scheduleJob('0 15,30,45,0 * * * *', function () {
-
-  var reDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes() - 5) + ':' + (dt.getSeconds());
+  var art = new Date();
+  console.log('현재시간: '+art)
+  var reDate = art.getFullYear() + '-' + (art.getMonth() + 1) + '-' + (art.getDate()) + ' ' + (art.getHours()) + ':' + (art.getMinutes() - 5) + ':' + (art.getSeconds());
   var sql = "UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_date < ? ;"+ "UPDATE pw_find SET pw_edit = 0, pw_dispose = 1 WHERE  pw_date < ? ;"
   var param = [reDate,reDate]
   connection.query(sql,param, function (err, results) {
@@ -117,43 +122,27 @@ function Pass(keypw) {
 //세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
 function chkSession(req, res, next) {
 
-  console.log('chkSession')
-
-  console.log(req.session.cookie._expires)
-
-  // 만료시간 확인 후 세션 삭제 
-  var nowDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
-  if ( req.session.cookie._expires< nowDate) {
-    
-    console.log('만료됨')
-    req.session.destroy(function (err) {
-      if(!err){
-        console.log('파과됨')
-
-      }else{
-        console.log('err ' +err)
-      }
-      
-    });
-
-
-    
-    return res.send( '세션만료' )
-  }
-  console.log('만료안됨')
-  console.log('req.session.cookie._expires: '+req.session.cookie._expires)
-  console.log('DATE: ' +nowDate)
  
   
-
+  // 만료 확인 후 세션 삭제 
+  if (req.session.myEmail == null) {
+    
+    console.log('만료됨')
+    //res.redirct('/')
+    res.send('/')
+    // return res.send( '세션만료' )
+  }else{
+    
+    
+    console.log('유효함')
+    
+    
+   
+  }
   return next()
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
 
 
 
@@ -238,7 +227,6 @@ async function SendCheckEmail(go_mail, key, fla) {
 
 
 
-
 //회원가입, 로그 db에 등록하기
 app.post('/join', (req, res) => {
 
@@ -288,9 +276,9 @@ app.post('/joinAuth', (req, res) => {
             //이미 가입한 이메일인지 확인
             if (result[0] == null) {
               var ran = Math.random().toString(36).substr(2, 8);
-
+              var et = new Date();
               //이메일 인증 테이블에 넣기
-              var emDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
+              var emDate = et.getFullYear() + '-' + (et.getMonth() + 1) + '-' + (et.getDate()) + ' ' + (et.getHours()) + ':' + (et.getMinutes()) + ':' + (et.getSeconds());
               var sql = "INSERT INTO email_auth (email_key, email_date, rec_email) VALUE(?,?,?)"
               var param = [ran, emDate, req.body.rec_email]
               connection.query(sql, param, function (err, results) {
@@ -392,7 +380,7 @@ app.post('/login', (req, res) => {
       if (result != null ) {
 
         req.session.myEmail = result[0].member_email
-        req.session.myPw = result[0].member_pw
+        req.session.myPw   = result[0].member_pw
         req.session.myName = result[0].member_name
         req.session.save(() => {
           console.log("리다이렉션")
@@ -427,15 +415,15 @@ app.get('/logout', (req, res) => {
 
 })
 //약관동의
-app.get('/chosenAgree', chkSession, (req, res) => {
+app.get('/chosenAgree',chkSession, (req, res) => {
 
   
 
   if (req.query.chose == 1) {
     req.session.chosenAgree = 1
-    console.log(req.session.chosenAgree)
     console.log('약관동의: '+req.session.cookie._expires)
     res.send('약관 선택')
+    
 
 
   } else {
@@ -446,21 +434,28 @@ app.get('/chosenAgree', chkSession, (req, res) => {
 
 })
 
-//세션연습
-app.get('/test', chkSession,(req, res) => {
-
-  
-   
-    console.log('test')
-    res.send('test')
+app.get('/test', (req, res) => {
 
 
-  
+
+  console.log(req.session)
+  req.session.test = 1
+  res.send('테스트')
+
     
-  
-
-  
 })
+
+//창 닫을 시 꺼지게 하기 클라측
+// $(window).unload(function () { 
+//   $.get('/session/destroy');
+// });
+
+
+//창 닫을 시 꺼지게 하기 서버측
+app.get('/session/destroy', function(req, res) {
+  req.session.destroy();
+  res.status(200).send('ok');
+});
 
 
 //비밀번호 찾기
@@ -486,10 +481,11 @@ app.post('/findPw', (req, res) => {
             console.log(req.body.pw_email)
 
               var ran = Math.random().toString(36).substr(2, 8);
+              var pt = new Date();
 
               //비번 인증 테이블에 넣기
               var ran = Math.random().toString(36).substr(2, 8);
-              var pwDate = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + (dt.getDate()) + ' ' + (dt.getHours()) + ':' + (dt.getMinutes()) + ':' + (dt.getSeconds());
+              var pwDate = pt.getFullYear() + '-' + (pt.getMonth() + 1) + '-' + (pt.getDate()) + ' ' + (pt.getHours()) + ':' + (pt.getMinutes()) + ':' + (pt.getSeconds());
               var sql = "INSERT INTO pw_find (pw_key, pw_date, member_email) VALUE(?,?,?)"
               var param = [ran, pwDate, req.body.pw_email]
               console.log("paramL "+param)
@@ -574,7 +570,7 @@ app.get('/checkPw', (req, res) => {
 
 
 //비밀번호 재설정
-app.patch('/resetPw',(req,res)=>{
+app.patch('/resetPw', chkSession ,(req,res)=>{
   
   var sql = "UPDATE member SET member_pw = ? WHERE member_email IN (select member_email from pw_find where pw_key = ?)"
   var param = [Pass(req.body.reset_pw), req.session.pwSend]
@@ -606,7 +602,7 @@ app.patch('/resetPw',(req,res)=>{
 
 //회원탈퇴
 
-app.patch('/member/secede',(req,res)=>{
+app.patch('/member/secede', chkSession ,(req,res)=>{
   connection.query("UPDATE member SET member_secede = 1 WHERE  member_email= '" + req.session.myEmail+"'", function (err, result) {
     if (!err) {
 
@@ -628,6 +624,22 @@ app.patch('/member/secede',(req,res)=>{
   })
 
 })
+
+//개인정보수정 전 비밀번호 확인
+app.patch('/member/checkPw',chkSession,(req,res)=>{
+
+  if(req.session.myPw == Pass(req.body.pw)){
+    console.log("성공")
+    res.send("성공")
+  }else{
+    console.log("실패")
+    res.send("실패")
+  }
+
+})
+
+//개인정보 수정
+
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
