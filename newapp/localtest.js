@@ -165,7 +165,7 @@ function Decrypt(text) {
 
 //메일 보내기---------------------------------------------------------------------------------------------------------
 async function SendCheckEmail(go_mail, key, fla) {
-
+//이메일 인증 메일
   if (fla == 1) {
     console.log("보내기에서 받은" + go_mail)
     const mailOptions = {
@@ -190,7 +190,7 @@ async function SendCheckEmail(go_mail, key, fla) {
       }
       smtpTransport.close();
     });
-    //날리는거 수정
+    //비밀번호 찾기 인증 메일
   } else {
     console.log("보내기에서 받은" + go_mail)
     const mailOptions = {
