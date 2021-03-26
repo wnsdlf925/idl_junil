@@ -1,10 +1,6 @@
 //인증시간 만료시간 백그라운드에서 말고 인증할때 확인하고 바꾸는 것으로
 //**나중에 res.send 프론트에 맞게 설정하기**
 // import {connection} from "mysql.js"
-/* 계층팀장에게 물어보자
-*myapp에 commom에 func, config에 db,session넣기 
-*
-*/
 const express = require('express')
 let session = require('express-session')
 let MySQLStore = require('express-mysql-session')(session)
@@ -27,7 +23,7 @@ var moment = require('moment');
 const { now } = require('moment')
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
-
+var dt = new Date();
 
 
 //db연결
@@ -85,22 +81,22 @@ connection.connect()
 
 
 //15분마다 인증키시간 초기화--------------------------------------------------------------------------------------------------
-// const authReset = schedule.scheduleJob('0 15,30,45,0 * * * *', function () {
-//   var art = new Date();
-//   console.log('현재시간: ' + art)
-//   var reDate = art.getFullYear() + '-' + (art.getMonth() + 1) + '-' + (art.getDate()) + ' ' + (art.getHours()) + ':' + (art.getMinutes() - 5) + ':' + (art.getSeconds());
-//   var sql = "UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_date < ? ;" + "UPDATE pw_find SET pw_edit = 0, pw_dispose = 1 WHERE  pw_date < ? ;"
-//   var param = [reDate, reDate]
-//   connection.query(sql, param, function (err, results) {
-//     if (!err) {
-//       console.log("UPDATE: 성공")
-//     } else {
-//       console.log("err: " + err)
-//     }
-//   })
+const authReset = schedule.scheduleJob('0 15,30,45,0 * * * *', function () {
+  var art = new Date();
+  console.log('현재시간: ' + art)
+  var reDate = art.getFullYear() + '-' + (art.getMonth() + 1) + '-' + (art.getDate()) + ' ' + (art.getHours()) + ':' + (art.getMinutes() - 5) + ':' + (art.getSeconds());
+  var sql = "UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_date < ? ;" + "UPDATE pw_find SET pw_edit = 0, pw_dispose = 1 WHERE  pw_date < ? ;"
+  var param = [reDate, reDate]
+  connection.query(sql, param, function (err, results) {
+    if (!err) {
+      console.log("UPDATE: 성공")
+    } else {
+      console.log("err: " + err)
+    }
+  })
 
-//   console.log('매 15분에 실행');
-// });
+  console.log('매 15분에 실행');
+});
 //--------------------------------------------------------------------------------------------------------------------------
 
 
@@ -123,7 +119,7 @@ function Pass(keypw) {
 //세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
 function chkSession(req, res, next) {
 
-
+  console.log(req.session)
 
   // 만료 확인 후 세션 삭제 
   if (req.session.myEmail == null) {
@@ -277,12 +273,12 @@ app.post('/joinAuth', (req, res) => {
               var ran = Math.random().toString(36).substr(2, 8);
               var et = new Date();
               //이메일 인증 테이블에 넣기
-              var emDate = et.getFullYear() + '-' + (et.getMonth() + 1) + '-' + (et.getDate()) + ' ' + (et.getHours()) + ':' + (et.getMinutes() + 15) + ':' + (et.getSeconds());
+              var emDate = et.getFullYear() + '-' + (et.getMonth() + 1) + '-' + (et.getDate()) + ' ' + (et.getHours()) + ':' + (et.getMinutes()) + ':' + (et.getSeconds());
               var sql = "INSERT INTO email_auth (email_key, email_date, rec_email) VALUE(?,?,?)"
               var param = [ran, emDate, req.body.rec_email]
               connection.query(sql, param, function (err, results) {
                 if (!err) {
-                  //SendCheckEmail(req.body.rec_email, ran, 1)
+                  SendCheckEmail(req.body.rec_email, ran, 1)
 
                   console.log("DB Connection Succeeded이메일 테이블")
                   res.send('DB Connection Succeeded이메일 테이블')
@@ -336,61 +332,26 @@ app.get('/check', (req, res) => {
       console.log('results: ' + results)
       //이메일 인증키가 있다면
       if (results[0].email_key == req.query.send) {
-        var ett = new Date();
-        var ettt = new Date(results[0].email_date);
-        var nowDate = ett.getFullYear() + '-' + (ett.getMonth() + 1) + '-' + (ett.getDate()) + ' ' + (ett.getHours()) + ':' + (ett.getMinutes()) + ':' + (ett.getSeconds());
-        var reDate = ettt.getFullYear() + '-' + (ettt.getMonth() + 1) + '-' + (ettt.getDate()) + ' ' + (ettt.getHours()) + ':' + (ettt.getMinutes()) + ':' + (ettt.getSeconds());
-        console.log(reDate > nowDate)
-          console.log("reDate: " + reDate)
-          console.log("nowDate " + nowDate)
-        //유효하다면
-        if (reDate > nowDate) {
 
-         
-          console.log("ok" )
-          
-          //인증키가 유효하다면
-          if (results[0].email_auth_flag == 0 && results[0].email_dispose == 0) {
-            connection.query("UPDATE email_auth SET email_auth_flag = 1, email_dispose = 1 WHERE  email_key_id =" + results[0].email_key_id, function (err, result) {
-              if (err) {
-                console.log(err)
-                res.send('에러!')
-              } else {
-                //res.redirect("/join")
-                req.session.idsend = req.query.send
-                console.log("리다이렉션.")
-                res.send('리다이렉션')
-              }
-            })
-            
-          } else {
-            console.log("이미 만료된 번호입니다. 다시 인증하셈")
-            res.send('이미 만료된 번호입니다. 다시 인증하셈')
-          }
-          
-          
+        //인증키가 유효하다면
+        if (results[0].email_auth_flag == 0 && results[0].email_dispose == 0) {
+          connection.query("UPDATE email_auth SET email_auth_flag = 1, email_dispose = 1 WHERE  email_key_id =" + results[0].email_key_id, function (err, result) {
+            if (err) {
+              console.log(err)
+              res.send('에러!')
+            } else {
+              //res.redirect("/join")
+              req.session.idsend = req.query.send
+              console.log("리다이렉션.")
+              res.send('리다이렉션')
+            }
+          })
+
         } else {
-
-          
-            connection.query("UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_key_id =" + results[0].email_key_id, function (err, result) {
-              if (err) {
-                console.log(err)
-                res.send('에러!')
-              } else {
-                //res.redirect("/join")
-                req.session.idsend = req.query.send
-                console.log("리다이렉션.")
-                res.send('리다이렉션')
-              }
-            })
-            
-          console.log("reDate: " + reDate)
-          console.log("nowDate: " + nowDate)
-          console.log("만료" )
-
+          console.log("이미 만료된 번호입니다. 다시 인증하셈")
+          res.send('이미 만료된 번호입니다. 다시 인증하셈')
         }
-          
-          
+
       } else {
         console.log("인증실패 테이블에 없음")
         res.send('인증실패 테이블에 없음')
@@ -641,7 +602,7 @@ app.patch('/resetPw', chkSession, (req, res) => {
 
 //회원탈퇴
 
-app.patch('/member/secede', chkSession, (req, res) => {
+app.patch('/secede', chkSession, (req, res) => {
   connection.query("UPDATE member SET member_secede = 1 WHERE  member_email= '" + req.session.myEmail + "'", function (err, result) {
     if (!err) {
 
@@ -665,7 +626,7 @@ app.patch('/member/secede', chkSession, (req, res) => {
 })
 
 //개인정보수정 전 비밀번호 확인
-app.post('/member/checkPw', chkSession, (req, res) => {
+app.post('/resetCheckPw', chkSession, (req, res) => {
 
   if (req.session.myPw == Pass(req.body.pw)) {
     //다음페이지에 정보들이 미리 써있기 위한 쿼리
@@ -694,7 +655,7 @@ app.post('/member/checkPw', chkSession, (req, res) => {
 
 //개인정보 수정
 //비번을 제외한 다른 요소의 공백은 프론트에서 확인
-app.patch('/member/revise', chkSession, (req, res) => {
+app.patch('/revise', chkSession, (req, res) => {
 
   //전화번호가 형식에 맞다면
   if (realPhone.test(req.body.member_phone) == true) {
@@ -747,23 +708,17 @@ app.patch('/member/revise', chkSession, (req, res) => {
 })
 
 //내 아이디어
-app.get('/member/myIdea', chkSession, (req, res) => {
+app.get('/myIdea', chkSession, (req, res) => {
 
-  var sql = "SELECT idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0"
+  var sql = "SELETE idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0"
   var param = [req.session.myEmail]
   connection.query(sql, param, function (err, result) {
     if (!err) {
-      var i = 0
-      while (result[i] != null) {
-        console.log(result[i])
-        //console.log(moment(result[i].idea_date).format())
-        console.log(result[i].idea_date)
-        i++
-      }
-      res.send("성공")
+
+
 
     } else {
-      console.log("에러:" + err)
+      console.log("에러")
       res.send("에러")
 
     }
