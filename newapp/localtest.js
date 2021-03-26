@@ -36,7 +36,7 @@ var connection = mysql.createConnection({
   multipleStatements: true
 })
 
-//세션
+//세션 //100분마다 세션 삭제
 let sessionStore = new MySQLStore({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -122,8 +122,6 @@ function Pass(keypw) {
 //세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
 function chkSession(req, res, next) {
 
- 
-  
   // 만료 확인 후 세션 삭제 
   if (req.session.myEmail == null) {
     
@@ -133,11 +131,9 @@ function chkSession(req, res, next) {
     // return res.send( '세션만료' )
   }else{
     
-    
     console.log('유효함')
     
-    
-   
+
   }
   return next()
 }
@@ -372,12 +368,10 @@ app.get('/check', (req, res) => {
 
 app.post('/login', (req, res) => {
 
-
-
   connection.query("SELECT * from member WHERE member_email = '" + req.body.email + "'and member_pw = '" + Pass(req.body.pw) + "' and member_secede = " + 0, function (err, result) {
     if (!err) {
 
-      if (result != null ) {
+      if (result[0] != null ) {
 
         req.session.myEmail = result[0].member_email
         req.session.myPw   = result[0].member_pw
@@ -417,14 +411,12 @@ app.get('/logout', (req, res) => {
 //약관동의
 app.get('/chosenAgree',chkSession, (req, res) => {
 
-  
 
   if (req.query.chose == 1) {
     req.session.chosenAgree = 1
     console.log('약관동의: '+req.session.cookie._expires)
     res.send('약관 선택')
     
-
 
   } else {
     req.session.chosenAgree = 0
@@ -434,16 +426,16 @@ app.get('/chosenAgree',chkSession, (req, res) => {
 
 })
 
-app.get('/test', (req, res) => {
+// app.get('/test', (req, res) => {
 
 
 
-  console.log(req.session)
-  req.session.test = 1
-  res.send('테스트')
+//   console.log(req.session)
+//   req.session.test = 1
+//   res.send('테스트')
 
     
-})
+// })
 
 //창 닫을 시 꺼지게 하기 클라측
 // $(window).unload(function () { 
@@ -452,10 +444,10 @@ app.get('/test', (req, res) => {
 
 
 //창 닫을 시 꺼지게 하기 서버측
-app.get('/session/destroy', function(req, res) {
-  req.session.destroy();
-  res.status(200).send('ok');
-});
+// app.get('/session/destroy', function(req, res) {
+//   req.session.destroy();
+//   res.status(200).send('ok');
+// });
 
 
 //비밀번호 찾기
@@ -468,7 +460,6 @@ app.post('/findPw', (req, res) => {
 
       //인증키 여러번 보냈는지 확인
       if (results[0] == null) {
-
 
         //가입한 이메일인지 쿼리
         await connection.query("SELECT member_email FROM member WHERE member_email = " + "'" + req.body.pw_email + "' and member_secede = " + 0, function (err, result, fields) {
@@ -626,19 +617,88 @@ app.patch('/member/secede', chkSession ,(req,res)=>{
 })
 
 //개인정보수정 전 비밀번호 확인
-app.patch('/member/checkPw',chkSession,(req,res)=>{
+app.post('/member/checkPw',chkSession,(req,res)=>{
 
-  if(req.session.myPw == Pass(req.body.pw)){
-    console.log("성공")
-    res.send("성공")
+  if(req.session.myPw ==  Pass(req.body.pw)){
+    //다음페이지에 정보들이 미리 써있기 위한 쿼리
+ connection.query("SELECT * FROM member WHERE member_email = '"+req.session.myEmail+"'",function(err,result){
+ if(!err){
+  console.log(result[0].member_email)
+  console.log(result[0].member_name)
+ /* 비번을 제외한 모든 변경값 넘기기 
+ res.send(result[0].member_email,result[0].member_name..... )
+*/
+
+ }else{
+  console.log("에러: "+err)
+  res.send("에러")
+ }
+  })
+    
+    console.log("일치")
+   
   }else{
-    console.log("실패")
-    res.send("실패")
+    console.log("불일치")
+    res.send("불일치")
   }
 
 })
 
 //개인정보 수정
+//비번을 제외한 다른 요소의 공백은 프론트에서 확인
+app.patch('/member/revise',chkSession,(req,res)=>{
+  
+//전화번호가 형식에 맞다면
+if(realPhone.test(req.body.member_phone) == true ){
+
+  
+  //비번이 공백이라면 비번 제외 업데이트
+  if(req.body.member_pw == ""){
+    var sql = "UPDATE member SET member_name = ?, member_sex = ?, member_birth = ?, member_company = ?, member_state = ?, member_phone= ? WHERE member_email = ?" 
+    var param = [ req.body.member_name, req.body.member_sex, req.body.member_birth, req.body.member_company, req.body.member_state, Encrypt(req.body.member_phone), req.session.myEmail]
+    
+    connection.query(sql, param, function (err, rows) {
+      if (!err) {
+        
+        console.log("DB Connection Succeeded")
+        res.send('DB Connection Succeeded')
+        
+      } else {
+        console.log("DB Connection Failed")
+        
+        res.send('DB Connection Failed')
+        console.log(err)
+      }
+    })
+    //비번이 공백아니라면 비번 포함 업데이트
+  }else{
+    var sql = "UPDATE member SET member_name = ?, member_pw = ?, member_sex = ?, member_birth = ?, member_company = ?, member_state = ?, member_phone= ? WHERE member_email = ?" 
+    var param = [ req.body.member_name, Pass(req.body.member_pw),req.body.member_sex, req.body.member_birth, req.body.member_company, req.body.member_state, Encrypt(req.body.member_phone), req.session.myEmail]
+    
+    connection.query(sql, param, function (err, rows) {
+      if (!err) {
+        
+        console.log("DB Connection Succeeded")
+        res.send('DB Connection Succeeded')
+        
+      } else {
+        console.log("DB Connection Failed")
+        
+        res.send('DB Connection Failed')
+        console.log(err)
+      }
+    })
+    
+    
+  }
+}else{
+  console.log("전화번호가 형식에 맞지않음")
+  res.send('전화번호가 형식에 맞지않음')
+}
+
+})
+
+//내 아이디어
 
 
 app.listen(port, () => {
