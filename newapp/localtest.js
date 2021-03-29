@@ -130,7 +130,7 @@ function chkSession(req, res, next) {
 
     console.log('만료됨')
     //res.redirct('/')
-    res.send('/')
+   
     // return res.send( '세션만료' )
   } else {
 
@@ -232,6 +232,7 @@ app.post('/join', (req, res) => {
   if (realPhone.test(req.body.member_phone) == true && realEmail.test(req.body.member_email) == true) {//전화번호 정규식
 
     var joinlog = moment().format('YYYY-MM-DD HH:mm:ss');
+    console.log(joinlog)
     var sql = "INSERT INTO ideapf.member (member_email, member_name, member_sex, member_birth, member_company, member_state, member_pw, member_phone, chosen_agree) VALUE(?,?,?,?,?,?,?,?,?);" +
       "INSERT INTO member_login_log (member_email,member_login) VALUE(?,?);" +
       "INSERT INTO member_log (member_email,member_log_join,member_login_lately) VALUE(?,?,?);"
