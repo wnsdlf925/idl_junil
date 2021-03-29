@@ -307,7 +307,7 @@ app.get('/check', (req, res) => {
 })
 
 
-//로그아웃
+//로그아웃 <-
 
 app.get('/logout', (req, res) => {
 
