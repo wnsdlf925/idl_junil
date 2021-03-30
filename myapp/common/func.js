@@ -1,7 +1,9 @@
 
 const nodemailer = require('nodemailer')//메일보내기
-const schedule = require('node-schedule')//특정시간에 이벤트 발생
+//const schedule = require('node-schedule')//특정시간에 이벤트 발생
 const crypto = require('crypto')//암호화
+let pool = require('../common/database.js')//db 
+const { release } = require('os')
 require('dotenv').config()
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.CRT_ENCRYPTION_KEY.repeat(2); // Must be 256 bits (32 characters)
 const IV_LENGTH = 16; // For AES, this is always 16
@@ -71,8 +73,7 @@ func.Pass = function(keypw) {
 
 
 
-//-------------------------------------------------------------------------------------------------------------------
-//메일을 보낼 이메일
+//메일을 보낼 이메일--------------------------------------------------------------------------------------------------
 const smtpTransport = nodemailer.createTransport({
   service: "Gmail",
   auth: {
@@ -85,66 +86,107 @@ const smtpTransport = nodemailer.createTransport({
 });
 //-------------------------------------------------------------------------------------------------------------------
 
+//등수----------------------------------------------------------------------------------------------------------
+//사용자 가입 -> 등수가 가장 높은 사람이 0이면 그사람과 같게 아니면 +1 널이면 내가 1 
+//등수가 가장 높은 사람의 등수와 그 사람들의 점수의 합
+func.RankCheck =  function () {
+  return new Promise(function(resolve, reject){
+
+    console.log('000000')
+    pool.getConnection(  function (err, connection) {
+      if (!err) {
+        console.log('111111')
+        
+        connection.query( "select max(member_rank) as newRank , sum(member_point) as newPoint from member where member_rank = (select MAX(member_rank) FROM member where member_ban =0 and member_secede =0);" , function (err, result) {
+          if(err){reject('쿼리 에러')}
+          if(result==null){
+          resolve(1)
+          }else if(result[0].newPoint == 0){
+            resolve(result[0].newRank)
+          }else{
+            resolve(result[0].newRank+1)
+          }
+
+      })
+    } else {
+      
+      console.log('풀 에러')
+      reject('풀 에러')
+    }
+    
+  })
+  
+})
+  
+}
 
 
+//-------------------------------------------------------------------------------------------------------------------
 
 
 
 //메일 보내기---------------------------------------------------------------------------------------------------------
-func.SendCheckEmail = async function (go_mail, key, fla) {
-  //이메일 인증 메일
-  if (fla == 1) {
-    console.log("보내기에서 받은" + go_mail)
-    const mailOptions = {
+func.SendCheckEmail =  function (go_mail, key, fla) {
+  return new Promise(function(resolve,reject){
 
-      from: process.env.MAIL_USER,
+    //이메일 인증 메일
+    if (fla == 1) {
+      console.log("보내기에서 받은" + go_mail)
+      const mailOptions = {
+        
+        from: process.env.MAIL_USER,
       to: go_mail,
       subject: "보아라 ",
       text: "localhost:3000/check?send=" + key
     };
     console.log("이메일생성")
-
-
-    await smtpTransport.sendMail(mailOptions, (error, responses) => {
+    
+    smtpTransport.sendMail(mailOptions, (error, responses) => {
       if (error) {
         console.log(error)
-        console.log("이메일 에러")
-
+        reject('error')
+      
+        
       } else {
-
         console.log("이메일 성공")
-
+        resolve("ok")
+        
       }
       smtpTransport.close();
     });
+    
+    console.log("00000000000")
+    
     //비밀번호 찾기 인증 메일
   } else {
     console.log("보내기에서 받은" + go_mail)
     const mailOptions = {
-
+      
       from: process.env.MAIL_USER,
       to: go_mail,
       subject: "보아라 ",
       text: "localhost:3000/checkpw?send=" + key
     };
     console.log("이메일생성")
-
-
-    await smtpTransport.sendMail(mailOptions, (error, responses) => {
+    
+    
+    smtpTransport.sendMail(mailOptions, (error, responses) => {
       if (error) {
         console.log(error)
-        console.log("이메일 에러")
-
+        reject('error')
+        
+        
       } else {
-
-        console.log("이메일 성공")
-
+        
+        resolve('ok')
+        
       }
       smtpTransport.close();
     });
-
+    
   }
-
+})
+  
 }
 
 module.exports = func

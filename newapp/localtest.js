@@ -185,11 +185,8 @@ async function SendCheckEmail(go_mail, key, fla) {
       if (error) {
         console.log(error)
         console.log("이메일 에러")
-
       } else {
-
         console.log("이메일 성공")
-
       }
       smtpTransport.close();
     });
@@ -264,13 +261,13 @@ app.post('/join', (req, res) => {
 app.post('/joinAuth', (req, res) => {
 
   //인증키 여러번 보냈는지 쿼리
-  connection.query("SELECT * FROM ideapf.email_auth WHERE rec_email =" + "'" + req.body.rec_email + "'" + " and email_auth_flag = '0'and email_dispose = '0'", async function (err, results) {
+  connection.query("SELECT * FROM ideapf.email_auth WHERE rec_email =" + "'" + req.body.rec_email + "'" + " and email_auth_flag = '0'and email_dispose = '0'",  function (err, results) {
 
     if (!err) {
       //인증키 여러번 보냈는지 확인
       if (results[0] == null) {
         //이미 가입한 이메일인지 쿼리
-        await connection.query("SELECT member_email FROM member WHERE member_email = " + "'" + req.body.rec_email + "' and member_secede = " + 0, function (err, result, fields) {
+         connection.query("SELECT member_email FROM member WHERE member_email = " + "'" + req.body.rec_email + "' and member_secede = " + 0, function (err, result, fields) {
 
           if (!err) {
             //이미 가입한 이메일인지 확인
@@ -281,9 +278,9 @@ app.post('/joinAuth', (req, res) => {
               var emDate = et.getFullYear() + '-' + (et.getMonth() + 1) + '-' + (et.getDate()) + ' ' + (et.getHours()) + ':' + (et.getMinutes() + 15) + ':' + (et.getSeconds());
               var sql = "INSERT INTO email_auth (email_key, email_date, rec_email) VALUE(?,?,?)"
               var param = [ran, emDate, req.body.rec_email]
-              connection.query(sql, param, function (err, results) {
+              connection.query(sql, param,  function (err, results) {
                 if (!err) {
-                  //SendCheckEmail(req.body.rec_email, ran, 1)
+                  SendCheckEmail(req.body.rec_email, ran, 1)
 
                   console.log("DB Connection Succeeded이메일 테이블")
                   res.send('DB Connection Succeeded이메일 테이블')

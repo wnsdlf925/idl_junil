@@ -12,6 +12,7 @@ var pool = mysql.createPool({
   port: process.env.DB_PORT,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  dateStrings:'date',
   multipleStatements: true,
   "connectionLimit": 10
 })
