@@ -10,7 +10,7 @@ let sessionStore = new MySQLStore({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   clearExpired: true,
-  checkExpirationInterval: 6000000
+  checkExpirationInterval: 3600000
 })
 
 sess.session = (session({

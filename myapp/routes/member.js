@@ -8,6 +8,7 @@
 const express = require('express')
 const app = express()
 app.use(express.json())
+var urlencode = require('urlencode'); 
 require('dotenv').config() //env
 let pool = require('../common/database.js')//db 
 let sess = require('../common/session.js')//세션
@@ -34,7 +35,7 @@ moment.tz.setDefault("Asia/Seoul");
 //pool로 바꾸기
 
 
-//회원가입, 로그 db에 등록하기
+//회원가입, 로그 db에 등록하기 -> 메인페이지로 이동
 app.post('/join', (req, res) => {
 
 
@@ -103,7 +104,6 @@ app.post('/joinAuth', (req, res) => {
                   var ran = Math.random().toString(36).substr(2, 8);
                   var et = new Date();
                   //이메일 인증 테이블에 넣기
-                  var emDate = et.getFullYear() + '-' + (et.getMonth() + 1) + '-' + (et.getDate()) + ' ' + (et.getHours()) + ':' + (et.getMinutes() + 15) + ':' + (et.getSeconds());
                   var sql = "INSERT INTO email_auth (email_key, email_date, rec_email) VALUE(?,now(),?)"
                   // var param = [ran, emDate, req.body.rec_email]
                   var param = [ran, req.body.rec_email]
@@ -170,8 +170,7 @@ app.post('/joinAuth', (req, res) => {
 
 })
 
-// //이메일 인증 
-
+// //이메일 인증 -> 약관동의 페이지로 이동
 app.get('/check', (req, res) => {
 
   pool.getConnection(function (err, connection) {
@@ -210,7 +209,7 @@ app.get('/check', (req, res) => {
                     req.session.idsend = req.query.send
                     connection.release();
                     console.log("리다이렉션.")
-                    res.json({ move: '/join' })
+                    res.json({ move: '/member/chosenAgree' })
                   }
                 })
 
@@ -263,9 +262,7 @@ app.get('/check', (req, res) => {
 
 
 
-//로그인
-//체크
-
+//로그인 -> 메인페이지로 이동
 app.post('/login', (req, res) => {
 
   pool.getConnection(function (err, connection) {
@@ -290,7 +287,7 @@ app.post('/login', (req, res) => {
             console.log(req.session.myName)
             req.session.save(() => {
               console.log("리다이렉션")
-              res.json({ login: 'ok' })
+              res.json({ move: '/' })
 
             })
 
@@ -318,32 +315,35 @@ app.post('/login', (req, res) => {
 })
 
 
-//로그아웃 
-
+//로그아웃  -> 메인페이지로 이동
 app.get('/logout', (req, res) => {
 
   req.session.destroy(function (err) {
     console.log("로그아웃");
-    res.json({ logout: 'ok' })
+    res.json({ move: '/' })
   });
 
 
 })
 
-//약관동의
+//약관동의 -> 회원가입페이지로 이동
 app.get('/chosenAgree', (req, res) => {
 
 
   if (req.query.chose == 1) {
     req.session.chosenAgree = 1
     console.log('약관동의: ' + req.session.cookie._expires)
-    res.json({ chosenAgree: req.query.chose })
+    res.json({ chosenAgree: req.query.chose,
+               move: '/member/join'
+             })
 
 
   } else {
     req.session.chosenAgree = 0
     console.log(req.session.chosenAgree)
-    res.json({ chosenAgree: req.query.chose })
+    res.json({ chosenAgree: req.query.chose,
+               move: '/member/join'
+             })
   }
 
 })
@@ -381,35 +381,25 @@ app.get('/chosenAgree', (req, res) => {
 // // });
 
 
-//비밀번호 찾기
+//비밀번호 찾기 -> 이메일로 보냈습니다. 출력
 app.post('/findPw', (req, res) => {
 
   pool.getConnection(function (err, connection) {
 
     if (!err) {
-
-
       //인증키 여러번 보냈는지 쿼리
       connection.query("SELECT * FROM pw_find WHERE member_email =" + "'" + req.body.pw_email + "'" + " and pw_edit = '0'and pw_dispose = '0'", async function (err, results) {
-
         if (!err) {
-
           //인증키 여러번 보냈는지 확인
           if (results[0] == null) {
-
             //가입한 이메일인지 쿼리
             await connection.query("SELECT member_email FROM member WHERE member_email = " + "'" + req.body.pw_email + "' and member_secede = " + 0, function (err, result, fields) {
-
               if (!err) {
-
                 //가입한 이메일인지 확인
                 if (result[0].member_email == req.body.pw_email) {
                   console.log(result[0].member_email)
                   console.log(req.body.pw_email)
-
-                  var ran = Math.random().toString(36).substr(2, 8);
                   var pt = new Date();
-
                   //비번 인증 테이블에 넣기
                   var ran = Math.random().toString(36).substr(2, 8);
                   var pwDate = pt.getFullYear() + '-' + (pt.getMonth() + 1) + '-' + (pt.getDate()) + ' ' + (pt.getHours()) + ':' + (pt.getMinutes()) + ':' + (pt.getSeconds());
@@ -433,31 +423,20 @@ app.post('/findPw', (req, res) => {
                   console.log('아이디가 없음')
                   res.json({ email: "empty" })
                 }
-
                 console.log("DB Connection Succeeded 아이디 확인")
-
-
-
-
               } else {
                 connection.release();
                 console.log("DB Connection Failed중복확인")
-
                 res.json({ db: "DB Connection Failed 중복확인" })
               }
-
             })
             console.log("리솔트가 널 : " + results)
-
-
             //비밀번호 인증키 테이블에 넣기
           } else {
             connection.release();
             console.log("리솔트 : " + results)
             console.log("인증키 두번누름")
             res.json({ db: "인증키 두번누름" })
-
-
           }
         } else {
           connection.release();
@@ -467,14 +446,11 @@ app.post('/findPw', (req, res) => {
         }
       })
     } else {
-
       connection.release();
       console.log("풀 에러")
       res.json({ pool: "err" })
     }
-
   })
-
 })
 
 //비밀번호 인증 
@@ -482,10 +458,7 @@ app.get('/checkPw', (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (!err) {
-
-
       connection.query("SELECT * FROM pw_find WHERE pw_key = " + "'" + req.query.send + "'", function (err, results, fields) {
-
         if (err) {
           console.log(err)
           res.json({ db: "err" })
@@ -493,32 +466,26 @@ app.get('/checkPw', (req, res) => {
           console.log('results: ' + results)
           //비밀번호 인증키가 있다면
           if (results[0].pw_key == req.query.send) {
-
             //인증키가 유효하다면
             if (results[0].pw_edit == 0 && results[0].pw_dispose == 0) {
               //res.redirect("/resetpw")
               req.session.pwSend = req.query.send
               connection.release();
               console.log("리다이렉션.")
-              res.json({ checkPw: "ok" })
+              res.json({ move: "/member/resetPw" })
               //res.redirect('/')
-
             } else {
               connection.release();
               console.log("이미 만료된 번호입니다. 다시 인증하셈")
-
               res.json({ checkPw: "이미 만료된 번호입니다. 다시 인증하셈" })
             }
-
           } else {
             connection.release();
             console.log("인증실패 테이블에 없음")
             res.json({ checkPw: "fail" })
-
           }
         }
       })
-
     } else {
       connection.release();
       console.log("풀 에러")
@@ -529,13 +496,11 @@ app.get('/checkPw', (req, res) => {
 })
 
 
-//비밀번호 재설정
+//비밀번호 재설정 -> 마이페이지로 이동
 app.patch('/resetPw', func.ChkSession, (req, res) => {
 
   pool.getConnection(function (err, connection) {
-    if (!err) {
-
-
+    if (!err) { b 
       var sql = "UPDATE member SET member_pw = ? WHERE member_email IN (select member_email from pw_find where pw_key = ?)"
       var param = [func.Pass(req.body.reset_pw), req.session.pwSend]
       console.log('req.body.reset_pw: ' + req.body.reset_pw)
@@ -547,7 +512,7 @@ app.patch('/resetPw', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log('성공!')
-              res.json({ resetPw: "ok" })
+              res.json({ move: "/member/mypage" })
             } else {
               connection.release();
               console.log(err)
@@ -573,8 +538,7 @@ app.patch('/resetPw', func.ChkSession, (req, res) => {
 
 })
 
-//회원탈퇴
-
+//회원탈퇴 ->메인으로 이동
 app.patch('/secede', func.ChkSession, (req, res) => {
   pool.getConnection(function (err, connection) {
     if (!err) {
@@ -586,7 +550,7 @@ app.patch('/secede', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log("회원탈퇴");
-              res.json({ secede: "ok" })
+              res.json({ move: "/" })
             } else {
               connection.release();
               console.log("세션에러", err);
@@ -608,15 +572,12 @@ app.patch('/secede', func.ChkSession, (req, res) => {
   })
 })
 
-//개인정보수정 전 비밀번호 확인 
+//개인정보수정 전 비밀번호 확인 -> 수정페이지로 이동
 app.post('/checkPw', func.ChkSession, (req, res) => {
-
   if (req.session.myPw == func.Pass(req.body.pw)) {
-
     console.log(req.session)
-
     res.json({
-      checkPw: 'ok',
+      move: '/member/revise',
       member_email: req.session.myEmail,
       member_name: req.session.myName,
       member_sex: req.session.mySex,
@@ -635,7 +596,7 @@ app.post('/checkPw', func.ChkSession, (req, res) => {
 
 })
 
-//개인정보 수정
+//개인정보 수정 -> 마이페이지로 이동
 //비번을 제외한 다른 요소의 공백은 프론트에서 확인
 app.patch('/revise', func.ChkSession, (req, res) => {
 
@@ -654,7 +615,7 @@ app.patch('/revise', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log("DB Connection Succeeded")
-              res.json({ revise: "ok" })
+              res.json({ move: "/member/move" })
 
             } else {
               connection.release();
@@ -723,31 +684,78 @@ app.get('/myPoint', func.ChkSession, (req, res) => {
 })
 
 
-//내 아이디어 <-
+//내 아이디어 
 app.get('/myIdea', func.ChkSession, (req, res) => {
-  var limit = 15*(req.query.pageNum-1)
-  
-  console.log('limit: '+limit)
   
   
+    var limit = 15*(req.query.pageNum-1)
+    console.log('limit: '+limit)
+    pool.getConnection(function (err, connection) {
+      if(!err){
+        connection.query("SELECT count(idea_id) as num FROM idea WHERE member_email = ? and idea_delete = 0 ", req.session.myEmail, function (err, result) {
+          if(!err){
+            if(result[0].num !=0){
+              var postNum = result[0].num 
+              console.log('postNum: '+ postNum%15 != 0 )
+              if(postNum%15 != 0){
+                postNum = parseInt(postNum/15 +1)
+              }else{
+                postNum = parseInt(postNum/15)
+              }
+
+              var sql = "SELECT idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0 limit ?, ?"
+              var param = [req.session.myEmail,limit,pageNum]
+              connection.query(sql, param, function (err, result) {
+                
+                if (!err) {
+                  connection.release();
+                  res.json({ result: result,
+                             postNum: postNum
+                  })
+                } else {
+                connection.release();
+                console.log("에러:" + err)
+                res.json({ db: "err" })
+              }
+            })
+          }else{
+            connection.release();
+                console.log("result:" + 0)
+                res.json({ result: "0" })
+          }
+
+            
+          }else{
+            connection.release();
+                console.log("에러:" + err)
+                res.json({ db: "err" })
+          }
+      
+          
+        })
+      }else{
+        connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+
+      }
+      
+    })
+})
+
+
+//내 아이디어 상세보기
+app.get('/myIdea/deTail', func.ChkSession, (req, res) => {
   pool.getConnection(function (err, connection) {
     if (!err) {
-      var sql = "SELECT idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0 limit ?, ?"
-      var param = [req.session.myEmail,limit,pageNum]
+      var sql = "SELECT idea_id, idea_title, idea_date ,idea_contents, member_email FROM idea WHERE idea_id = ?"
+      var param = [req.query.send]
       connection.query(sql, param, function (err, result) {
         
         if (!err) {
-          var i = 0
-          while (i < pageNum) {
-            if(result[i]==null){
-              break
-            }
-            console.log(result[i])
-            i++
-          }
           connection.release();
           res.json({ result: result
-                   })
+          })
         } else {
           connection.release();
           console.log("에러:" + err)
@@ -763,6 +771,132 @@ app.get('/myIdea', func.ChkSession, (req, res) => {
 })
 
 
+//내 아이디어 등록하기 -> 내 아이디어 페이지로 이동
+app.post('/myIdea/ideaPush', func.ChkSession, (req, res) => {
+
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "INSERT INTO idea(idea_title, idea_contents, idea_date,member_email, add_point) VALUE (?,?,curdate(),?,500);"+
+      "INSERT INTO idea_log(idea_id, idea_edit_date, idea_contents) VALUE((SELECT MAX(idea_id) FROM idea WHERE member_email =? and idea_title = ?),now(),?);"+
+      "UPDATE member SET member_point =+500 , save_point =+ 500 WHERE member_email = ? ;"
+      var param = [req.body.idea_title, req.body.idea_contents, req.session.myEmail, req.session.myEmail, req.body.idea_title, req.body.idea_contents,  req.session.myEmail]
+      connection.query(sql, param, function (err, result) {
+        if(!err){
+          connection.release();
+          
+          res.json({ move: "/member/myIdea" })
+        }else{
+          connection.release();
+          
+          res.json({ db: "err" })
+        }
+        
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+
+//내 아이디어 수정 -> 내 아이디어 페이지로 이동
+app.patch('/myIdea/ideaReset', func.ChkSession, (req, res) => {
+
+  pool.getConnection(function (err, connection) {
+    if(!err){
+      var sql = "UPDATE idea_log SET idea_edit_date = now(), idea_contents = (SELECT idea_contents from idea WHERE idea_id = ?) WHERE idea_id = ?;"+
+      "UPDATE idea SET idea_title = ? , idea_contents = ? WHERE idea_id = ?;"
+      
+      var param = [req.body.idea_id ,req.body.idea_id ,req.body.idea_title, req.body.idea_contents, req.body.idea_id ]
+      connection.query(sql, param, function (err, result) {
+        if(!err){
+          connection.release();
+          
+          res.json({ move: "/member/myIdea" })
+        }else{
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+        
+      })
+    }else{
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+//내 아이디어 검색 검색 정규식 필요
+app.get('/myIdea/search', func.ChkSession, (req, res) => {
+  var limit = 15*(req.query.pageNum-1)
+    console.log('limit: '+limit)
+  pool.getConnection(function (err, connection) {
+    if(!err){
+    connection.query("SELECT count(idea_id) as num FROM idea WHERE member_email = ? and idea_delete = 0 ", req.session.myEmail, function (err, result) {
+if(!err){
+  if(result[0].num !=0){
+    var postNum = result[0].num 
+    console.log('postNum: '+ postNum%15 != 0 )
+    if(postNum%15 != 0){
+      postNum = parseInt(postNum/15 +1)
+    }else{
+      postNum = parseInt(postNum/15)
+    }
+
+    var sql = "SELECT idea_id, idea_title, idea_date  FROM idea WHERE member_email = ? and idea_title LIKE ? limit ?,?"
+    
+    var param = [req.session.myEmail, '%'+urlencode.decode(req.query.send)+'%',limit, pageNum]
+    connection.query(sql, param, function (err, result) {
+      if(!err){
+        connection.release();
+        res.json({ search: result,
+                   postNum: postNum
+                 })
+      }else{
+        connection.release();
+        console.log(err)
+        res.json({ db: "err" })
+      }
+      
+    })
+  }else{
+    connection.release();
+    console.log("result:" + 0)
+    res.json({ result: "0" })
+
+  }
+}else{
+  connection.release();
+      console.log(err)
+      res.json({ db: "err" })
+}
+    })
+
+    }else{
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+    })
+  })
+
+//관심사업 
+app.get('/myInter', func.ChkSession, (req, res) => {
+  
+  
+  var limit = 15*(req.query.pageNum-1)
+  console.log('limit: '+limit)
+  pool.getConnection(function (err, connection) {
+    
+  })
+})
 
 
 module.exports = app

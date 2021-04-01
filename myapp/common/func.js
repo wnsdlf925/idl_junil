@@ -35,16 +35,15 @@ func.Pass = function(keypw) {
   if (req.session.myEmail == null) {
 
     console.log('만료됨')
-    //res.redirct('/')
-  
-    // return res.send( '세션만료' )
+    
+    return res.json({move: '/'})
   } else {
 
     console.log('유효함')
 
 
+    return next()
   }
-  return next()
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
