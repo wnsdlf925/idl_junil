@@ -25,7 +25,6 @@ func.Pass = function(keypw) {
 
 
 
-
 //세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
  func.ChkSession =function(req, res, next) {
 
@@ -184,5 +183,47 @@ func.SendCheckEmail =  function (go_mail, key, fla) {
 })
   
 }
+//-------------------------------------------------------------------------------------------------------------------
+
+
+
+//페이지 개수---------------------------------------------------------------------------------------------------------
+
+
+func.checkPage = function(totalPost){
+
+  if(totalPost !=0){
+    var postNum = totalPost
+    console.log('postNum: '+ postNum%15 != 0 )
+    if(postNum%15 != 0){
+      return postNum = parseInt(postNum/15 +1)
+    }else{
+      return postNum = parseInt(postNum/15)
+    }
+
+}else{
+  console.log("result:" + 0)
+  return 0
+}
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-------------------------------------------------------------------------------------------------------------------
+
+
 
 module.exports = func

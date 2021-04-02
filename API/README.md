@@ -22,13 +22,13 @@ PARAM : KEY = member-email, VALUE= 로그인할 아이디
 
 **회원가입시 테이블에 같이 들어감 회원가입 페이지로 넘어갈때 넘겨줌**
 
-URL : [POST] http://{IP} : {PORT}/agree
+URL : [GET] http://{IP} : {PORT}/member/chosenAgree
 
 PARAM : KEY = agree, VALUE= 선택약관 동의여부
 
 `2. 회원가입 `
 
-URL  : [POST] http://{IP} : {PORT}/member
+URL  : [POST] http://{IP} : {PORT}/member/join
 
 PARAM : KEY = member-email, VALUE= 등록할 이메일 
 
@@ -69,7 +69,7 @@ PARAM : KEY = member-email, VALUE= 등록할 이메일
 
 **4. key 붙여서 이메일로 보내기**
 
-URL  : [POST] http://{IP} : {PORT}/member/forgetpw
+URL  : [POST] http://{IP} : {PORT}/member/findPw
 
 PARAM : KEY = member-email, VALUE= 잃어버린 비밀번호의 이메일 
 
@@ -95,7 +95,7 @@ PARAM : KEY = member-email, VALUE= 잃어버린 비밀번호의 이메일
 
 **2. 이메일에서 인증버튼 누르면 원래 창으로 돌아가서 db에서 이메일 받아온 상태로 돌아감**
 
-URL  : [POST] http://{IP} : {PORT}/member/forgetpw
+URL  : [GET] http://{IP} : {PORT}/member/checkPw
 
 PARAM : KEY = input-email, VALUE= 입력 이메일 
 
@@ -116,7 +116,7 @@ PARAM : KEY = input-email, VALUE= 입력 이메일
 
 `5. 비밀번호 재설정`
 
-URL  : [PUT] http://{IP} : {PORT}/member/resetpw
+URL  : [patch] http://{IP} : {PORT}/member/resetPw
 
 PARAM : KEY = member-pw, VALUE= 재설정할 비밀번호
 
@@ -135,7 +135,7 @@ PARAM : KEY = member-pw, VALUE= 재설정할 비밀번호
 
 `6. 개인정보수정 전 비밀번호 확인`
 
-URL  : [GET] http://{IP} : {PORT}/mypage/checkpw
+URL  : [POST] http://{IP} : {PORT}/member/checkInfo
 
 PARAM : KEY = member-pw, VALUE=  아이디의 비밀번호
 
@@ -146,7 +146,7 @@ PARAM : KEY = member-pw, VALUE=  아이디의 비밀번호
 
 `7. 개인정보수정`
 
-URL  : [PUT] http://{IP} : {PORT}/mypage/resetprivacy
+URL  : [patch] http://{IP} : {PORT}/member/revise
 
 PARAM : KEY = member-email, VALUE= 수정할 이메일 
 
@@ -173,7 +173,7 @@ PARAM : KEY = member-email, VALUE= 수정할 이메일
 
 `8. 회원탈퇴`
 
-URL  : [POST] http://{IP} : {PORT}/mypage/out
+URL  : [patch] http://{IP} : {PORT}/member/secede
 
 PARAM : KEY = member-email, VALUE= 이메일 
 
@@ -219,7 +219,7 @@ PARAM : KEY = member-email, VALUE= 이메일
 
 `9. 내 아이디어`
 
-URL  : [GET] http://{IP} : {PORT}/mypage/myidea
+URL  : [GET] http://{IP} : {PORT}/member/myIdea
 
 서버 응답: KEY = idea-title, VALUE= 아이디어 제목
 
@@ -231,7 +231,7 @@ URL  : [GET] http://{IP} : {PORT}/mypage/myidea
 
 `10. 관심사업`
 
-URL  : [GET] http://{IP} : {PORT}/mypage/inter
+URL  : [GET] http://{IP} : {PORT}/member/myInter
 
 서버 응답: KEY = member-email, VALUE= 이메일
 
@@ -264,7 +264,7 @@ URL  : [DELETE] http://{IP} : {PORT}/mypage/interdel
 
 `13. 로그아웃`
 
-URL  : [DELETE] http://{IP} : {PORT}/logout
+URL  : [GET] http://{IP} : {PORT}/member/logout
 
 
 동작: 세션을 종료시킨다.
@@ -276,7 +276,7 @@ URL  : [DELETE] http://{IP} : {PORT}/logout
 
 `1. 현황`
 
-URL  : [GET] http://{IP} : {PORT}/mypage/mypoint
+URL  : [GET] http://{IP} : {PORT}/member/myPoint
 
 서버 응답 : KEY = member-point, VALUE= 현재 포인트
 
@@ -291,7 +291,7 @@ URL  : [GET] http://{IP} : {PORT}/mypage/mypoint
 
 `2. 사용내역`
 
-URL  : [GET] http://{IP} : {PORT}/mypage/usepoint
+URL  : [GET] http://{IP} : {PORT}/mypage/usePoint
 
 서버 응답 : KEY = use-date, VALUE= 포인트 사용 날짜
 
