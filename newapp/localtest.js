@@ -5,6 +5,7 @@
 *myapp에 commom에 func, config에 db,session넣기 
 *
 */
+const axios = require('axios');
 const express = require('express')
 let session = require('express-session')
 let MySQLStore = require('express-mysql-session')(session)
@@ -771,6 +772,26 @@ app.get('/member/myIdea', chkSession, (req, res) => {
   })
 
 })
+
+app.get('/test',  (req, res) => {
+
+  axios.get('https://www.naver.com')
+  .then(function (response) {
+    // handle success
+    console.log(response);
+  })
+  .catch(function (error) {
+    // handle error
+    console.log(error);
+  })
+  .then(function () {
+    // always executed
+  });
+
+  
+
+})
+
 
 
 app.listen(port, () => {

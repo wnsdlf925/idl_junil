@@ -691,7 +691,7 @@ app.get('/usePointLog', func.ChkSession, (req, res) => {
             connection.query(sql, param, function (err, result) {
               
               if (err) {
-                res.json({ db: err })
+                res.json({ db: 'err' })
               } else {
                 res.json({
                   usePoint: result,
@@ -710,12 +710,48 @@ app.get('/usePointLog', func.ChkSession, (req, res) => {
           
         } else {
           connection.release();
-          res.json({ db: err })
+          res.json({ db: 'err' })
         }
       })
         
+    }
+  })
+})
 
 
+//누적 내역
+
+app.get('/savePointLog', func.ChkSession, (req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+  pool.getConnection(function (err, connection) {
+    if (err) {
+      res.json({ pool: err })
+    } else {
+      var sql = "SELECT count(idea_id) as num FROM idea WHERE member_email = ? and idea_delete = 0 and add_point > 0"
+      var param = [req.session.myEmail]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          var postNum = func.checkPage(result[0].num)
+          if(postNum !=0){
+            var sql = "SELECT idea_id, idea_date, idea_title  FROM idea WHERE member_email = ? and idea_delete = 0 and add_point > 0 limit ?,?"
+            var param = [req.session.myEmail,limit,pageNum]
+            connection.query(sql,param,function(err, result){
+              if(err){ res.json({ db: 'err' })}
+              res.json({ result: result,
+                        postNum: postNum
+            })
+
+
+            })
+          }else{
+            res.json({ result: 'empty' })
+          }
+            
+          
+        } else {
+          res.json({ db:'err' })
+        }
+      })
     }
   })
 })

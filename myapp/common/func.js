@@ -95,14 +95,18 @@ func.RankCheck =  function () {
       if (!err) {
         console.log('111111')
         
-        connection.query( "from member where member_rank = (select MAX(member_rank) FROM member where member_ban =0 and member_secede =0);" , function (err, result) {
-          
-          if(result==null){
-          resolve(1)
-          }else {
-            resolve(result[0].newRank+1)
-          }
+        connection.query( "select max(member_rank) as newRank , sum(member_point) as newPoint from member where member_rank = (select MAX(member_rank) FROM member where member_ban =0 and member_secede =0);" , function (err, result) {
+          if(err){reject('쿼리 에러')}
+
+          if(result[0]==null){
+            resolve(1)
+            }else if(result[0].newPoint == 0){
+              resolve(result[0].newRank)
+            }else {
+              resolve(result[0].newRank+1)
+            }
         })
+
       } else {
         
         console.log('풀 에러')
@@ -209,14 +213,6 @@ func.checkPage = function(totalPost){
 
 
 }
-
-
-
-
-
-
-
-
 
 
 

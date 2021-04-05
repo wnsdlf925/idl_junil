@@ -12,4 +12,27 @@ app.use(session)
 const pageNum = 15
 
 //참여자 순위와 목록
-app.get('')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//공지사항 게시판
+app.get('/notice', function(req, res, ) {
+
+
+  res.json(result);
+})
+
+
+module.exports = app;
