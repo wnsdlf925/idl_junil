@@ -621,7 +621,7 @@ app.patch('/revise', func.ChkSession, (req, res) => {
 })
 
 
-//포인트 현황
+//포인트 현황, 랭크까지 
 app.get('/myPoint', func.ChkSession, (req, res) => {
 
   pool.getConnection(function (err, connection) {
@@ -645,6 +645,8 @@ app.get('/myPoint', func.ChkSession, (req, res) => {
     }
   })
 })
+
+
 
 
 //포인트 사용하기 
@@ -903,7 +905,7 @@ app.patch('/myIdea/ideaReset', func.ChkSession, (req, res) => {
 
 })
 
-//내 아이디어 검색 검색 정규식 필요
+//내 아이디어 검색 검색 정규식 필요, fulltext 설정해야함
 app.get('/myIdea/search', func.ChkSession, (req, res) => {
   var limit = 15 * (req.query.pageNum - 1)
   console.log('limit: ' + limit)
@@ -911,8 +913,8 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
     if (!err) {
       
       //게시물 찾기
-      var sql = "SELECT idea_id, idea_title, idea_date  FROM idea WHERE member_email = ? and idea_delete = 0 and  idea_title LIKE ? limit ?,?"
-      var param = [req.session.myEmail, '%' + urlencode.decode(req.query.send) + '%', limit, pageNum]
+      var sql = "select idea_id, idea_title, idea_date from idea where member_email = ? and match(idea_title) against(? IN boolean mode) limit ?,?;"
+      var param = [req.session.myEmail, urlencode.decode(req.query.send) +'*', limit, pageNum]
       connection.query(sql, param, function (err, result) {
         if(!err){
          
@@ -920,8 +922,8 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
             var newResult = result
           
           //게시물 개수
-          var sql = "SELECT count(idea_id) as num FROM idea WHERE member_email = ? and idea_delete = 0 and  idea_title LIKE ? "
-          var param = [req.session.myEmail, '%' + urlencode.decode(req.query.send) + '%']
+          var sql = "select count(idea_id) as num  from idea where member_email = ? and match(idea_title) against(? IN boolean mode)"
+          var param = [req.session.myEmail,  urlencode.decode(req.query.send)+'*']
           connection.query(sql, param, function (err, result) {
             if (!err) {
               var postNum = func.checkPage(result[0].num)
@@ -1047,8 +1049,9 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
     if (!err) {
       
       //게시물 찾기
-      var sql = "SELECT  inter_anno.anno_id, anno.anno_title,  anno.anno_date from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id and anno_title like ? limit ?,?;"
-      var param = [req.session.myEmail, '%' + urlencode.decode(req.query.send) + '%', limit, pageNum]
+      
+      var sql = "SELECT  inter_anno.anno_id, anno.anno_title, anno.anno_date from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id where match(anno_title) against( ? IN boolean mode)  limit ?,?;"
+      var param = [req.session.myEmail,  urlencode.decode(req.query.send) + '*', limit, pageNum]
       connection.query(sql, param, function (err, result) {
         if(!err){
          
@@ -1056,8 +1059,8 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
             var newResult = result
           
           //게시물 개수
-          var sql = "SELECT  inter_anno.anno_id, anno.anno_title,  anno.anno_date from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id and anno_title like ?"
-          var param = [req.session.myEmail, '%' + urlencode.decode(req.query.send) + '%']
+          var sql = "SELECT  count(inter_anno.anno_id) as num from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id where match(anno_title) against( ? IN boolean mode);"
+          var param = [req.session.myEmail,  urlencode.decode(req.query.send) + '*']
           connection.query(sql, param, function (err, result) {
             if (!err) {
               var postNum = func.checkPage(result[0].num)

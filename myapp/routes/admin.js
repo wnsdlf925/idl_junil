@@ -6,7 +6,7 @@ require('dotenv').config() //env
 let pool = require('../common/database.js')//db 
 let sess = require('../common/session.js')//세션
 let func = require('../common/func.js')//함수
-let upload = require('../common/upload.js');//함수
+let upload = require('../common/upload.js');//파일 업로드
 const { connect } = require('./member.js');
 const { query } = require('../common/database.js');
 let session = sess.session
@@ -75,12 +75,11 @@ app.post('/login', (req, res) => {
 
 
 //공지사항 올리기
-app.post('/notice', upload.array('sendImg'), function(req, res ) {
+app.post('/notice', function(req, res ) {
   //key는 있고 value가 공백일때 '', 키가 없어야 null됨
-  if(req.files == null){
+  
     pool.getConnection (function(err, connection){
       if(!err){
-
         var sql = "INSERT INTO notice(notice_title, notice_contents, notice_date, admin_email) VALUE(?, ?, curdate(),?);"+
         "INSERT INTO notice_log(notice_id, notice_edit_date, notice_before_contents ) VALUE((select MAX(notice_id) FROM notice WHERE admin_email=? and notice_title = ?), now(),?);"
         var param = [req.body.title, req.body.contents, req.session.adMyEmail, req.session.adMyEmail, req.body.title, req.body.contents]
@@ -106,39 +105,52 @@ app.post('/notice', upload.array('sendImg'), function(req, res ) {
       })
       
 
-  }else{
-    //여기부터
-    pool.getConnection (function(err, connection){
-      if(!err){
-
-        var sql = "INSERT INTO notice(notice_title, notice_contents, notice_date, admin_email) VALUE(?, ?, curdate(),?);"+
-        "INSERT INTO notice_log(notice_id, notice_edit_date, notice_before_contents ) VALUE((select MAX(notice_id) FROM notice WHERE admin_email=? and notice_title = ?), now(),?);"
-        var param = [req.body.title, req.body.contents, req.session.adMyEmail, req.session.adMyEmail, req.body.title, req.body.contents]
-        
-        connection.query(sql, param, function(err,result){
-          if(!err){
-            connection.release();
-            console.log("성공")
-            res.json({ notice: "ok" })
-            
-          }else{
-            connection.release();
-            console.log(req.body.title)
-            res.json({ db: "err" })
-          }
-          
-        })
-      }else{
-        connection.release();
-        console.log("풀 에러")
-        res.json({ pool: "err" })
-      }
-      })
-
-  }
-
+ 
   
-})
-
-
-module.exports = app;
+      
+    })
+    
+    
+    app.post('/noticeImg', upload.array('sendImg'), function(req, res ) {
+      //여기부터
+     
+     
+      pool.getConnection (function(err, connection){
+        if(!err){
+          var i = 1
+          var sql = "INSERT INTO notice_file_dir(notice_file_name, notice_file_path, notice_id ) VALUE(?,?,(select MAX(notice_id) FROM notice WHERE admin_email=? ));"
+          var ex =  [req.files[0].originalname ,req.files[0].path, req.session.adMyEmail]
+          while(req.files[i]!=null){
+            sql = sql + "INSERT INTO notice_file_dir(notice_file_name, notice_file_path, notice_id ) VALUE(?,?,(select MAX(notice_id) FROM notice WHERE admin_email=? ));"
+            ex = ex.concat(req.files[i].originalname ,req.files[i].path, req.session.adMyEmail)
+            i++
+          }
+          param = ex
+          console.log("sql:" +sql)
+          console.log("param: "+param)
+          
+            connection.query(sql, param, function(err,result){
+              if(!err){
+              connection.release();
+             
+              
+              res.json({ notice: "ok" })
+              
+            }else{
+              connection.release();
+            
+              
+              console.log(err)
+              res.json({ db: err })
+            }
+            
+          })
+        }else{
+          connection.release();
+          console.log("풀 에러")
+          res.json({ pool: "err" })
+        }
+      })
+    })
+      
+      module.exports = app;

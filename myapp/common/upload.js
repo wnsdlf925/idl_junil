@@ -16,7 +16,7 @@ let storage = multer.diskStorage({
     }
 });
 
-// 1. 미들웨어 등록
+//미들웨어 등록, 20MB제한
 let upload = multer({
     storage: storage,
     limits: {fileSize: 20*1024*1024}

@@ -4,6 +4,7 @@ newapp/dhdn.js
 newapp/.env
 myapp/node_modules/*
 myapp/.env
+myapp/file/*
 
 
 
