@@ -8,7 +8,7 @@
 const express = require('express')
 const app = express()
 app.use(express.json())
-var urlencode = require('urlencode');
+
 require('dotenv').config() //env
 let pool = require('../common/database.js')//db 
 let sess = require('../common/session.js')//세션
@@ -20,13 +20,11 @@ const pageNum = 15
 
 const realPhone = /^\d{3}-\d{3,4}-\d{4}$/; //전화번호 정규식
 const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;//이메일 정규식
-const space =  /^[0-9a-zA-Zㄱ-ㅎ가-힣]*$/;//공백체크
+
 
 
 //시간
 var moment = require('moment');
-const { now } = require('moment')
-const { route } = require('.')
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
@@ -775,7 +773,7 @@ app.get('/myIdea', func.ChkSession, (req, res) => {
           var postNum = func.checkPage(result[0].num)
           if (postNum != 0) {
             //내 아이디어 가져오기
-            var sql = "SELECT idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0 limit ?, ?"
+            var sql = "SELECT idea_id, idea_title, idea_date FROM idea WHERE member_email = ? and idea_delete = 0 ORDER BY idea_id DESC limit ?, ?"
             var param = [req.session.myEmail, limit, pageNum]
             connection.query(sql, param, function (err, result) {
 
@@ -916,23 +914,23 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
     pool.getConnection(function (err, connection) {
       if (!err) {
         
+        console.log("req.query.send:" + req.query.send)
         //게시물 찾기
-        var sql = "select idea_id, idea_title, idea_date from idea where member_email = ? and match(idea_title) against(? IN boolean mode) limit ?,?;"
-        var param = [req.session.myEmail, urlencode.decode(req.query.send) +'*', limit, pageNum]
+        var sql = "select idea_id, idea_title, idea_date from idea where member_email = ? and match(idea_title) against(? IN boolean mode) ORDER BY idea_id DESC limit ?,?;"
+        var param = [req.session.myEmail, req.query.send +'*', limit, pageNum]
         connection.query(sql, param, function (err, result) {
           if(!err){
             
             if(result[0]==null){
               
               connection.release();
-              console.log("result:" + 0)
               res.json({ result: "empty" })
             }else{
               var newResult = result
               
               //게시물 개수
               var sql = "select count(idea_id) as num  from idea where member_email = ? and match(idea_title) against(? IN boolean mode)"
-            var param = [req.session.myEmail,  urlencode.decode(req.query.send)+'*']
+            var param = [req.session.myEmail,  req.query.send+'*']
             connection.query(sql, param, function (err, result) {
               if (!err) {
                 var postNum = func.checkPage(result[0].num)
@@ -986,7 +984,7 @@ app.get('/myInter', func.ChkSession, (req, res) => {
           var postNum = func.checkPage(result[0].num)
           if (postNum != 0) {
             //관심사업 목록
-            var sql = "SELECT anno_title, anno_date, inter_anno.anno_id from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id limit ?,?;"
+            var sql = "SELECT anno_title, anno_date, inter_anno.anno_id from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id ORDER BY anno.anno_id DESC limit ?,?;"
             var param = [req.session.myEmail,limit,pageNum]
             connection.query(sql, param, function (err, result) {
               if(!err){
@@ -1059,8 +1057,8 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
         
         //게시물 찾기
         
-        var sql = "SELECT  inter_anno.anno_id, anno.anno_title, anno.anno_date from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id where match(anno_title) against( ? IN boolean mode)  limit ?,?;"
-        var param = [req.session.myEmail,  urlencode.decode(req.query.send) + '*', limit, pageNum]
+        var sql = "SELECT  inter_anno.anno_id, anno.anno_title, anno.anno_date from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id where match(anno_title) against( ? IN boolean mode) anno.anno_id  limit ?,?;"
+        var param = [req.session.myEmail,  req.query.send + '*', limit, pageNum]
         connection.query(sql, param, function (err, result) {
           if(!err){
             if(result[0]==null){
@@ -1074,7 +1072,7 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
             
               //게시물 개수
               var sql = "SELECT  count(inter_anno.anno_id) as num from anno inner JOIN inter_anno on inter_anno.member_email= ? and anno.anno_id =  inter_anno.anno_id where match(anno_title) against( ? IN boolean mode);"
-              var param = [req.session.myEmail,  urlencode.decode(req.query.send) + '*']
+              var param = [req.session.myEmail,  req.query.send + '*']
               connection.query(sql, param, function (err, result) {
                 if (!err) {
                   var postNum = func.checkPage(result[0].num)

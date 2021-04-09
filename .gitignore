@@ -5,6 +5,7 @@ newapp/.env
 myapp/node_modules/*
 myapp/.env
 myapp/file/*
-
+myapp/config/*
+myapp/logs/*
 
 

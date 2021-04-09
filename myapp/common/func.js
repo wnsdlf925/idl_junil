@@ -5,6 +5,7 @@ const crypto = require('crypto')//암호화
 let pool = require('../common/database.js')//db 
 const { release } = require('os')
 require('dotenv').config()
+
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.CRT_ENCRYPTION_KEY.repeat(2); // Must be 256 bits (32 characters)
 const IV_LENGTH = 16; // For AES, this is always 16
 const space =  /^[0-9a-zA-Zㄱ-ㅎ가-힣]*$/;//공백체크
@@ -70,7 +71,7 @@ func.ChkAdSession =function(req, res, next) {
 
 //공백체크---------------------------------------------------------------------------------------------------------------------
 func.checkSpace = function(item){
-if(item==0||item == space){
+if(item==0||space.test(item)==true){
 return false
 }else{
 return true
@@ -160,6 +161,9 @@ func.RankCheck =  function () {
 
 
 
+
+
+
 //메일 보내기---------------------------------------------------------------------------------------------------------
 func.SendCheckEmail =  function (go_mail, key, fla) {
   return new Promise(function(resolve,reject){
@@ -246,12 +250,7 @@ func.checkPage = function(totalPost){
   return 0
 }
 
-
-
 }
-
-
-
 
 
 //-------------------------------------------------------------------------------------------------------------------
