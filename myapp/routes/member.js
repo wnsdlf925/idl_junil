@@ -13,6 +13,8 @@ require('dotenv').config() //env
 let pool = require('../common/database.js')//db 
 let sess = require('../common/session.js')//세션
 let func = require('../common/func.js')//함수
+let upload = require('../common/upload.js');//파일 업로드
+var fs = require('fs');
 let session = sess.session
 app.use(session)
 const pageNum = 15
@@ -25,6 +27,7 @@ const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z
 
 //시간
 var moment = require('moment');
+const { json } = require('express')
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
@@ -34,7 +37,7 @@ moment.tz.setDefault("Asia/Seoul");
 //pool로 바꾸기
 
 
-//회원가입, 로그 db에 등록하기 -> 메인페이지로 이동
+//회원가입, 한번 가입했던 사람인지 확인
 app.post('/join', (req, res) => {
 
 
@@ -53,6 +56,18 @@ app.post('/join', (req, res) => {
         var param = [req.body.member_email, req.body.member_name, req.body.member_sex, req.body.member_birth, req.body.member_company, req.body.member_state, func.Pass(req.body.member_pw), func.Encrypt(req.body.member_phone), req.session.chosenAgree, await func.RankCheck(), req.body.member_email, joinlog, req.body.member_email, joinlog, joinlog,]
         connection.query(sql, param, function (err, rows, fields) {
           if (!err) {
+            req.session.myEmail = req.body.member_email
+            req.session.myPw = req.body.member_pw
+            req.session.myName = req.body.member_name
+            req.session.mySex = req.body.member_sex
+            req.session.myBirth = req.body.member_birth
+            req.session.myCompany = req.body.member_company
+            req.session.myState = req.body.member_state
+            req.session.myPhone = req.body.member_phone
+            console.log(req.session.myName)
+            req.session.save(() => {
+              console.log("session ok")
+            })
             console.log('성공')
             console.log("DB Connection Succeeded")
             connection.release();
@@ -250,9 +265,14 @@ app.post('/login', (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (!err) {
-      connection.query("SELECT * from member WHERE member_email = '" + req.body.email + "'and member_pw = '" + func.Pass(req.body.pw) + "' and member_secede = " + 0 + " and member_ban = " + 0, function (err, result) {
+      var sql =  "SELECT * from member WHERE member_email =? and member_pw =?  and member_secede = 0  and member_ban = 0;"
+      var param = [req.body.email, func.Pass(req.body.pw) ]
+      
+      connection.query(sql,param, function (err, result) {
         if (!err) {
+          console.log("22222222")
           if (result[0] != null) {
+            
             req.session.myEmail = result[0].member_email
             req.session.myPw = result[0].member_pw
             req.session.myName = result[0].member_name
@@ -263,11 +283,24 @@ app.post('/login', (req, res) => {
             req.session.myPhone = func.Decrypt(result[0].member_phone)
             console.log(req.session.myName)
             req.session.save(() => {
-              console.log("리다이렉션")
-              res.json({ move: '/' })
+              console.log("session ok")
             })
-            connection.release();
-            console.log("로그인 성공")
+        
+            var newsql = "update member_log set member_login_lately = now() where member_email = ?;"+
+            "INSERT INTO member_login_log(member_email, member_login) VALUE( ?, now());"
+            var newparam = [req.session.myEmail, req.session.myEmail,  req.session.myEmail]
+            connection.query(newsql,newparam, function (err, result) {
+              if(!err){
+                
+                connection.release();
+                res.json({ move: '/' })
+                console.log("로그인 성공")
+              }else{
+                connection.release();
+                res.json({ db: err })
+                console.log("db err")
+              }
+            })
           } else {
             console.log("로그인 실패")
             connection.release();
@@ -319,37 +352,6 @@ app.get('/chosenAgree', (req, res) => {
 
 })
 
-// app.get('/test', (req, res) => {
-
-//   console.log( req.session.cookie._expires )
-
-//   console.log( moment( req.session.cookie._expires ).format(), moment().format() )
-
-//   if ( new Date( req.session.cookie._expires ) < new Date() ) {
-
-//     console.log( '만료' )
-
-//     return res.send( '만료' )
-//   }
-
-//   console.log( '유효' )
-
-//   return res.send( '유효' )
-
-//   // res.send('테스트')
-// })
-
-// //창 닫을 시 꺼지게 하기 클라측
-// // $(window).unload(function () { 
-// //   $.get('/session/destroy');
-// // });
-
-
-// //창 닫을 시 꺼지게 하기 서버측
-// // app.get('/session/destroy', function(req, res) {
-// //   req.session.destroy();
-// //   res.status(200).send('ok');
-// // });
 
 
 //비밀번호 찾기 -> 이메일로 보냈습니다. 출력
@@ -758,7 +760,6 @@ app.get('/savePointLog', func.ChkSession, (req, res) => {
 })
 
 
-
 //내 아이디어 
 app.get('/myIdea', func.ChkSession, (req, res) => {
 
@@ -818,89 +819,178 @@ app.get('/myIdea', func.ChkSession, (req, res) => {
 app.get('/myIdea/deTail', func.ChkSession, (req, res) => {
   pool.getConnection(function (err, connection) {
     if (!err) {
-      var sql = "SELECT idea_id, idea_title, idea_date ,idea_contents, member_email FROM idea WHERE idea_id = ?"
-      var param = [req.query.send]
+      var sql = "SELECT idea_id, idea_title, idea_date ,idea_contents, member_email FROM idea WHERE idea_id = ?;" + "SELECT idea_file_name FROM idea_file_dir WHERE idea_id = ?;"
+      var param = [req.query.send,req.query.send]
       connection.query(sql, param, function (err, result) {
 
-        if (!err) {
+         if(result[0].member_email = req.session.myEmail){
+          if (!err) {
+            connection.release();
+            res.json({
+              result: result
+            })
+          } else {
+            connection.release();
+            console.log("에러:" + err)
+            res.json({ db: "err" })
+          }
+          
+        }else{
           connection.release();
-          res.json({
-            result: result
-          })
-        } else {
-          connection.release();
-          console.log("에러:" + err)
-          res.json({ db: "err" })
+            console.log("본인 아이디 아님" )
+            res.json({ myIdea: "fail" })
         }
+        
       })
     } else {
       connection.release();
       console.log("풀 에러")
       res.json({ pool: "err" })
     }
+
   })
 })
 
 
 //내 아이디어 등록하기 -> 내 아이디어 페이지로 이동
-app.post('/myIdea/ideaPush', func.ChkSession, (req, res) => {
+app.post('/myIdea/ideaPush', func.ChkSession, upload.array('sendImg'), (req, res) => {
 
-  pool.getConnection(function (err, connection) {
-    if (!err) {
-      var sql = "INSERT INTO idea(idea_title, idea_contents, idea_date,member_email, add_point) VALUE (?,?,curdate(),?,500);" +
+  console.log(req.files);
+  if (req.files[0] == null) {
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        var sql = "INSERT INTO idea(idea_title, idea_contents, idea_date,member_email, add_point) VALUE (?,?,curdate(),?,500);" +
         "INSERT INTO idea_log(idea_id, idea_edit_date, idea_contents) VALUE((SELECT MAX(idea_id) FROM idea WHERE member_email =? and idea_title = ?),now(),?);" +
         "UPDATE member SET member_point = member_point +500 , save_point = save_point + 500 WHERE member_email = ?;"
-      var param = [req.body.idea_title, req.body.idea_contents, req.session.myEmail, req.session.myEmail, req.body.idea_title, req.body.idea_contents, req.session.myEmail]
-      connection.query(sql, param, function (err, result) {
-        if (!err) {
-          connection.release();
+        var param = [ req.body.title, req.body.contents, req.session.myEmail, req.session.myEmail,  req.body.title, req.body.contents, req.session.myEmail]
+        connection.query(sql, param, function (err, result) {
+          if (!err) {
+            connection.release();
+            console.log("성공")
+            res.json({ notice: "ok" })
+          } else {
+            connection.release();
+            console.log(req.body.title)
+            res.json({ db: err })
+          }
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  } else {
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        var sql = "INSERT INTO idea(idea_title, idea_contents, idea_date,member_email, add_point) VALUE (?,?,curdate(),?,500);" +
+        "INSERT INTO idea_log(idea_id, idea_edit_date, idea_contents) VALUE((SELECT MAX(idea_id) FROM idea WHERE member_email =? and idea_title = ?),now(),?);" +
+        "UPDATE member SET member_point = member_point +500 , save_point = save_point + 500 WHERE member_email = ?;"
+        var param = [ req.body.title, req.body.contents, req.session.myEmail, req.session.myEmail,  req.body.title, req.body.contents, req.session.myEmail]
 
-          res.json({ move: "/member/myIdea" })
-        } else {
-          connection.release();
+        connection.query(sql, param, function (err, result) {
+          if (!err) {
+            var i = 1
+            var newsql = "INSERT INTO idea_file_dir(idea_file_name, idea_file_path, idea_id ) VALUE(?,?,(select MAX(idea_id) FROM idea WHERE member_email=? ));"
+            var ex = [req.files[0].originalname, req.files[0].path, req.session.myEmail]
+            while (req.files[i] != null) {
+              newsql = newsql + "INSERT INTO idea_file_dir(idea_file_name, idea_file_path, idea_id ) VALUE(?,?,(select MAX(idea_id) FROM idea WHERE member_email=? ));"
+              ex = ex.concat(req.files[i].originalname, req.files[i].path, req.session.myEmail)
+              i++
+            }
+            param = ex
 
-          res.json({ db: "err" })
-        }
+            connection.query(newsql, param, function (err, result) {
+              if (!err) {
+                connection.release();
+                res.json({ notice: "ok" })
 
-      })
-    } else {
-      connection.release();
-      console.log("풀 에러")
-      res.json({ pool: "err" })
-    }
-  })
+              } else {
+                connection.release();
+                console.log(err)
+                res.json({ db: err })
+              }
+
+            })
+
+
+
+          } else {
+            connection.release();
+            console.log(req.body.title)
+            res.json({ 첫db: err })
+          }
+
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  }
+
 
 })
 
 
 
 //내 아이디어 수정 -> 내 아이디어 페이지로 이동
-app.patch('/myIdea/ideaReset', func.ChkSession, (req, res) => {
+app.patch('/myIdea/ideaReset', func.ChkSession, upload.array('sendImg'), (req, res) => {
+ 
 
-  pool.getConnection(function (err, connection) {
-    if (!err) {
-      var sql = "UPDATE idea_log SET idea_edit_date = now(), idea_contents = (SELECT idea_contents from idea WHERE idea_id = ?) WHERE idea_id = ?;" +
-        "UPDATE idea SET idea_title = ? , idea_contents = ? WHERE idea_id = ?;"
-
-      var param = [req.body.idea_id, req.body.idea_id, req.body.idea_title, req.body.idea_contents, req.body.idea_id]
-      connection.query(sql, param, function (err, result) {
-        if (!err) {
-          connection.release();
-
-          res.json({ move: "/member/myIdea" })
-        } else {
-          connection.release();
-          console.log(err)
-          res.json({ db: "err" })
-        }
-
-      })
-    } else {
-      connection.release();
-      console.log("풀 에러")
-      res.json({ pool: "err" })
-    }
-  })
+//파일 삭제 -> 업데이트
+  console.log(req.files);
+  
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        var sql =  "select *  FROM idea_file_dir WHERE idea_id=?;"
+        var param = [req.body.idea_id]
+        connection.query(sql, param, function (err, result) {
+          if (!err) {
+            console.log(" result[i].idea_file_path: "+ result[0].idea_file_path)
+            
+            var i = 0
+            while(result[i]!=null){
+              
+              
+              fs.unlink("./"+ result[i].idea_file_path, function(err){
+                if( err ) {  console.log(err)}
+                console.log('file delete');
+                
+              });
+              console.log("성공")
+              i++
+            }
+            
+            var sql = "UPDATE idea_log SET idea_edit_date = now(), idea_contents = (SELECT idea_contents from idea WHERE idea_id = ?) WHERE idea_id = ?;" +
+                  "UPDATE idea SET idea_title = ? , idea_contents = ? WHERE idea_id = ?;" + "UPDATE idea_file_dir SET idea_file_name=?,idea_file_path=? WHERE idea_id = ?;"
+                var param = [ req.body.idea_id, req.body.idea_id, req.body.idea_title, req.body.idea_contents, req.body.idea_id, req.files[0].originalname, req.files[0].path, req.body.idea_id]
+                connection.query(sql, param, function (err, result) {
+                  if(!err){
+                    
+                    res.json({result:"ok"})
+                    connection.release();
+                  }else{
+                    
+                    res.json({db:err})
+                    connection.release();
+                  }
+                })
+          } else {
+            connection.release();
+            
+            res.json({ db: err })
+          }
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  
 
 })
 
@@ -969,6 +1059,41 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
   }
   })
   
+
+  //내 아이디어 다운로드
+app.get('/myIdea/download', function (req, res) {
+
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "SELECT  * from idea_file_dir  where idea_id = ? and idea_file_name = ?;"
+      var param = [req.query.send, req.query.name]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          connection.release();
+          if (result[0] != null) {
+
+            var filePath = result[0].idea_file_path
+            res.download(filePath)
+          } else {
+
+            console.log("에러:" + err)
+            res.json({ file: "err" })
+          }
+
+        } else {
+          connection.release();
+          console.log("에러:" + err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
   
   
   //관심사업 

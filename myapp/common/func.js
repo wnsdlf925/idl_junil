@@ -3,12 +3,13 @@ const nodemailer = require('nodemailer')//메일보내기
 //const schedule = require('node-schedule')//특정시간에 이벤트 발생
 const crypto = require('crypto')//암호화
 let pool = require('../common/database.js')//db 
+var win = require('../config/winston');
 const { release } = require('os')
 require('dotenv').config()
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.CRT_ENCRYPTION_KEY.repeat(2); // Must be 256 bits (32 characters)
 const IV_LENGTH = 16; // For AES, this is always 16
-const space =  /^[0-9a-zA-Zㄱ-ㅎ가-힣]*$/;//공백체크
+const space =  /\s/g;//공백체크
 
 
 var func = {}
@@ -25,6 +26,47 @@ func.Pass = function(keypw) {
 //----------------------------------------------------------------------------------------------------------------------------------
 
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+func.insertRank = function(){
+
+  return new Promise(function(resolve, reject){
+    pool.getConnection(  function (err, connection) {
+      if (!err) {
+        
+        connection.query( "update member as m1,(SELECT member_email,( @rank := @rank + 1 ) AS rank FROM member AS a, ( SELECT @rank := 0 ) AS b where member_ban = 0 AND member_secede = 0 ORDER BY a.save_point DESC) as r1 set m1.member_rank = r1.rank where m1.member_email =r1.member_email ; select member_name,save_point ,member_rank from member where member_rank  BETWEEN 1 AND 10;" , function (err, result) {
+          if(err){
+            reject('쿼리 에러')
+            win.info('insertRank: err')
+        }
+          else{
+            resolve('true')
+            win.info('insertRank: ok')
+        
+        }
+          
+        })
+
+      } else {
+        
+        console.log('풀 에러')
+        reject('풀 에러')
+    }
+    
+  })
+  
+})
+
+
+
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
 
 //세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
  func.ChkSession =function(req, res, next) {
@@ -34,7 +76,28 @@ func.Pass = function(keypw) {
 
     console.log('만료됨')
     
-    return res.json({move: '/'})
+    return res.json({move: '/',
+    ChkSession: "false" 
+  })
+  } else {
+
+    console.log('유효함')
+
+
+    return next()
+  }
+}
+
+func.adChkSession =function(req, res, next) {
+
+  // 만료 확인 후 세션 삭제 
+  if (req.session.adMyEmail == null) {
+
+    console.log('만료됨')
+    
+    return res.json({move: '/',
+    ChkSession: "false" 
+  })
   } else {
 
     console.log('유효함')

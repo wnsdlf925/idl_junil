@@ -16,8 +16,6 @@ const pageNum = 15
 
 
 var moment = require('moment');
-moment().format(); //2018-11-18T22:19:20+09:00
-moment().format("MM-DD-YYYY"); //11-18-2018
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
@@ -34,45 +32,6 @@ let oriUrl = 'https://cse.kangwon.ac.kr/index.php?mt=page&mp=5_3&mm=oxbbs&oxid=6
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 app.get('/test', (req, res) => {
 
 
@@ -83,12 +42,38 @@ app.get('/test', (req, res) => {
 
 
 
+//고객센터 보내기
+app.post('/contact',  function (req, res) {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+
+      //게시물 
+      var sql = "INSERT INTO contact(email, contact_title, contact_contents) VALUE(?,?,?);"+"INSERT INTO contact_log(contact_id, contact_send) VALUE((select MAX(contact_id) from contact where contact_title = ?),now());"
+      var param = [req.body.email, req.body.title, req.body.contents,req.body.contents,]
+      connection.query(sql,param, function (err, result) {
+        if (!err) {
+          connection.release();
+          console.log(err)
+          res.json({ contact: "ok" })
+          
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
 
 
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
 
+ 
 
-
-
+})
 
 
 
@@ -99,7 +84,36 @@ app.get('/test', (req, res) => {
 
 
 //참여자 순위와 목록
+app.get('/totalRank', (req, res) => {
+ 
 
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+
+      //게시물 
+      var sql = "select member_name,save_point ,member_rank from member where member_rank  BETWEEN 1 AND 10 ORDER BY member_rank ASC;"
+      connection.query(sql, function (err, result) {
+        if (!err) {
+          connection.release();
+          console.log(err)
+          res.json({ totalRank: result })
+          
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+
+
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
 
 
 
@@ -278,34 +292,53 @@ app.get('/idea', (req, res) => {
 
 })
 
-//아이디어게시판 상세보기 <-보류
-app.get('/idea/detail', (req, res) => {
-  pool.getConnection(function (err, connection) {
-    if (!err) {
-      var sql = "SELECT  idea_file_name from cs left outer join cs_file_dir on cs.cs_id = cs_file_dir.cs_id where cs.cs_id = ?;" +
-        "select * from cs where cs_id=?;"
-      var param = [req.query.send, req.query.send]
-      connection.query(sql, param, function (err, result) {
 
-        if (!err) {
-          connection.release();
-          res.json({
-            result: result
-          })
-        } else {
-          connection.release();
-          console.log("에러:" + err)
-          res.json({ db: "err" })
-        }
-      })
-    } else {
-      connection.release();
-      console.log("풀 에러")
-      res.json({ pool: "err" })
-    }
-  })
+//아이디어게시판 검색
+app.get('/idea/search', (req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+  console.log('limit: ' + limit)
+  if (func.checkSpace(req.query.send)) {
 
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        //게시물 찾기
+        var sql = "select idea_id, idea_title, idea_date from idea where  match(idea_title) against(? IN boolean mode) ORDER BY idea_id DESC limit ?,?;"+
+        "select count(idea_id) as num from idea where match(idea_title) against(? IN boolean mode)"
+        var param = [req.query.send + '*', limit, pageNum, req.query.send + '*']
+        connection.query(sql, param, function (err, result) {
+          if (!err) {
+            if (result[0][0] == null) {
+              connection.release();
+              console.log("result:" + 0)
+              res.json({ result: "empty" })
+            } else {
+              var postNum = func.checkPage(result[1][0].num)
+              connection.release();
+              res.json({
+                result: result,
+                postNum: postNum
+              })
+            }
+          } else {
+            connection.release();
+            console.log(err)
+            res.json({ db: "err" })
+          }
+
+
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  } else {
+    console.log("검색어 공백")
+    res.json({ result: "검색어 공백" })
+  }
 })
+
 
 
 
@@ -398,19 +431,16 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
         var sql = "INSERT INTO cs( cs_contents, cs_title, cs_date, member_email, cs_secret) VALUE( ?, ?, curdate(),?,?);" +
           "INSERT INTO cs_log(cs_id, cs_edit_date, cs_before_contents ) VALUE((select MAX(cs_id) FROM cs WHERE member_email=? and cs_title = ?), now(),?);"
         var param = [req.body.contents, req.body.title, req.session.myEmail, req.body.secret, req.session.myEmail, req.body.title, req.body.contents]
-
         connection.query(sql, param, function (err, result) {
           if (!err) {
             connection.release();
             console.log("성공")
             res.json({ notice: "ok" })
-
           } else {
             connection.release();
             console.log(req.body.title)
             res.json({ db: err })
           }
-
         })
       } else {
         connection.release();
@@ -471,7 +501,7 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
 })
 
 //문의게시판 올리기 직전
-app.get('/cs/csUploadBef', func.ChkSession, function (req, res) {
+app.get('/cs/', func.ChkSession, function (req, res) {
   res.json({ name: req.session.myName })
 
 })
@@ -725,6 +755,9 @@ app.get('/notice/download', function (req, res) {
 
 })
 
+
+
+//고객센터
 
 
 

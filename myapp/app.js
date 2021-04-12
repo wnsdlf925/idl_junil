@@ -2,18 +2,10 @@ var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
-var win = require('./config/winston');
 var logger = require('morgan');
 require('dotenv').config()
 var app = express();
-var cron = require('node-cron');
 
-
-cron.schedule('*/2 * * * * *', () => {
-  win.info('매 30초 마다 실행')
-console.log('매 30초 마다 실행');
-//checkCrawl()
-});
 
 
 var indexRouter = require('./routes/index');
@@ -21,6 +13,7 @@ var usersRouter = require('./routes/users');
 var memberRouter = require('./routes/member');
 var boardRouter = require('./routes/board');
 var adminRouter = require('./routes/admin');
+var crawlRouter = require('./common/crawl');
 
 
 
@@ -39,6 +32,7 @@ app.use('/users', usersRouter);
 app.use('/member', memberRouter);
 app.use('/board', boardRouter);
 app.use('/admin', adminRouter);
+app.use('/crawl', crawlRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

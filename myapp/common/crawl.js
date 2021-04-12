@@ -1,18 +1,36 @@
 
+const express = require('express')
+const app = express()
+app.use(express.json())
+
 let pool = require('../common/database.js')//db 
+let func = require('../common/func.js');//함수
+const noti = /^[0-9]/;
 const puppeteer = require('puppeteer');
 let nextPage = true //크롤링 페이지 넘기기
 let oriUrl = 'https://cse.kangwon.ac.kr/index.php?mt=page&mp=5_3&mm=oxbbs&oxid=6&key=&val=&subcmd=&CAT_ID=0&artpp=15&cpage='
+var win = require('../config/winston');
+var moment = require('moment');
+moment().format(); //2018-11-18T22:19:20+09:00
+moment().format("MM-DD-YYYY"); //11-18-2018
+require('moment-timezone');
+moment.tz.setDefault("Asia/Seoul");
 
 
-// var cron = require('node-cron');
 
 
-// cron.schedule('*/2 * * * * *', () => {
-// // logger.info('매 30초 마다 실행')
-// console.log('매 30초 마다 실행');
-// //checkCrawl()
-// });
+var cron = require('node-cron');
+
+
+cron.schedule('* * 4 * * *', async() => {
+  
+console.log('매 30초 마다 실행');
+//checkCrawl()
+//랭킹
+await func.insertRank()
+});
+
+
 
 
 var crawl = {}
@@ -249,9 +267,12 @@ checkCrawl = async function() {
         connection.query(newsql, ex, function (err, result) {
           if (!err) {
             connection.release();
+            win.info('daily carwling ok')
+            console.log(err)
             
           } else {
             connection.release();
+            win.info('daily carwling err')
             console.log(err)
            
           }
@@ -261,6 +282,7 @@ checkCrawl = async function() {
         
       } else {
       connection.release();
+      win.info('daily carwling db err')
       console.log("풀 에러")
       
     }
@@ -295,4 +317,4 @@ checkCrawl = async function() {
 
 
 
-module.exports = crawl
+module.exports = app

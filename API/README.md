@@ -641,7 +641,7 @@ PARAM : KEY = contact-id, VALUE= 고객센터 글 번호
 
 # 관리자API
 
-`1. 로그인 `
+`*1. 로그인 `
 
 URL  : [POST][PUT] http://{IP} : {PORT}/admin/login
 
@@ -656,7 +656,7 @@ PARAM : KEY = admin-email, VALUE= 확인할 아이디
 응답: 아이디와 비밀번호가 맞으면 true, 아니면 false를 반환한다.
 
 
-`2. 관리자가입`
+`*2. 관리자가입`
 
 URL  : [POST] http://{IP} : {PORT}/admin
 
@@ -683,7 +683,7 @@ PARAM : KEY = admin-email, VALUE= 등록할 이메일
 응답:  정상적으로 추가되었다면 true, 아니면 false를 반환한다.
 
 
-`3. 비밀번호 찾기`
+`*3. 비밀번호 찾기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/forgetpw
 
@@ -694,7 +694,7 @@ PARAM : KEY = admin-email, VALUE= 잃어버린 비밀번호의 이메일
 응답: 전송되었다면 true, 안됐다면 false 반환
 
 
-`4. 비밀번호 재설정`
+`*4. 비밀번호 재설정`
 
 URL  : [PUT] http://{IP} : {PORT}/admin/resetpw
 
@@ -705,7 +705,7 @@ PARAM : KEY = admin-pw, VALUE= 재설정할 비밀번호
 응답:  재설정 되었다면 true, 아니라면 false 반환
 
 
-`5. 개인정보수정 전 비밀번호 확인`
+`*5. 개인정보수정 전 비밀번호 확인`
 
 URL  : [GET] http://{IP} : {PORT}/admin/checkpw
 
@@ -716,7 +716,7 @@ PARAM : KEY = admin-pw, VALUE=  아이디의 비밀번호
 응답: 맞으면 true, 틀리면 false를 반환
 
 
-`6. 개인정보수정`
+`*6. 개인정보수정`
 
 URL  : [PUT] http://{IP} : {PORT}/admin/resetprivacy
 
