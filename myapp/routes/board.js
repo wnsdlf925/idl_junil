@@ -34,8 +34,6 @@ let oriUrl = 'https://cse.kangwon.ac.kr/index.php?mt=page&mp=5_3&mm=oxbbs&oxid=6
 
 app.get('/test', (req, res) => {
 
-
-  
 })
 
 
@@ -74,9 +72,6 @@ app.post('/contact',  function (req, res) {
  
 
 })
-
-
-
 
 
 
@@ -255,7 +250,7 @@ app.get('/idea', (req, res) => {
 
       //게시물 
       var sql = "select idea_id, idea_title, idea_date from idea WHERE idea_delete = 0 ORDER BY idea_id DESC limit ?,?;" +
-        "select count(idea_id) as num from idea;"
+        "select count(idea_id) as num from idea  WHERE idea_delete = 0;"
       var param = [limit, pageNum]
       connection.query(sql, param, function (err, result) {
         if (!err) {
@@ -302,8 +297,8 @@ app.get('/idea/search', (req, res) => {
     pool.getConnection(function (err, connection) {
       if (!err) {
         //게시물 찾기
-        var sql = "select idea_id, idea_title, idea_date from idea where  match(idea_title) against(? IN boolean mode) ORDER BY idea_id DESC limit ?,?;"+
-        "select count(idea_id) as num from idea where match(idea_title) against(? IN boolean mode)"
+        var sql = "select idea_id, idea_title, idea_date from idea where  idea_delete = 0 and  match(idea_title) against(? IN boolean mode) ORDER BY idea_id DESC limit ?,?;"+
+        "select count(idea_id) as num from idea where  idea_delete = 0 and  match(idea_title) against(? IN boolean mode)"
         var param = [req.query.send + '*', limit, pageNum, req.query.send + '*']
         connection.query(sql, param, function (err, result) {
           if (!err) {
@@ -391,7 +386,7 @@ app.get('/cs', (req, res) => {
 })
 
 
-//문의게시판 상세보기
+//문의게시판 상세보기 
 app.get('/cs/detail', (req, res) => {
   pool.getConnection(function (err, connection) {
     if (!err) {
@@ -757,7 +752,7 @@ app.get('/notice/download', function (req, res) {
 
 
 
-//고객센터
+
 
 
 

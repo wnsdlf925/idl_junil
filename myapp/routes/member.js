@@ -743,8 +743,6 @@ app.get('/savePointLog', func.ChkSession, (req, res) => {
               res.json({ result: result,
                         postNum: postNum
             })
-
-
             })
           }else{
             res.json({ result: 'empty' })
@@ -940,7 +938,7 @@ app.patch('/myIdea/ideaReset', func.ChkSession, upload.array('sendImg'), (req, r
  
 
 //파일 삭제 -> 업데이트
-  console.log(req.files);
+  
   
     pool.getConnection(function (err, connection) {
       if (!err) {

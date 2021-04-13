@@ -7,8 +7,7 @@ let pool = require('../common/database.js')//db
 let sess = require('../common/session.js')//세션
 let func = require('../common/func.js')//함수
 let upload = require('../common/upload.js');//파일 업로드
-// const { connect } = require('./member.js');
-// const { query } = require('../common/database.js');
+var fs = require('fs');
 let session = sess.session
 app.use(session)
 const pageNum = 15
@@ -26,7 +25,7 @@ app.post('/login', (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (!err) {
-      connection.query("SELECT * from admin WHERE admin_email = '" + req.body.email + "'and admin_pw = '" + func.Pass(req.body.pw)+"'" , function (err, result) {
+      connection.query("SELECT * from admin WHERE admin_email = '" + req.body.email + "'and admin_pw = '" + func.Pass(req.body.pw)+"'"+"and admin_secede = 0" , function (err, result) {
         if (!err) {
           if (result[0] != null) {
             req.session.adMyEmail = result[0].admin_email
@@ -592,6 +591,514 @@ app.get('/totalUserLog/search',func.adChkSession , (req, res) => {
 })
 
     
+
+//아이디어 게시물에 포인트 주기
+app.patch('/ideaPoint', func.adChkSession ,(req, res) => {
+ 
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "update idea set add_point = add_point + 500, date_point = curdate(), admin_email = ? where idea_id = ?;" +
+        "update member set save_point  = save_point + 500, member_point = member_point+500 where member_email = ?"
+        var param = [req.session.adMyEmail ,req.body.id, req.body.email ]
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+            connection.release();
+            res.json({ ideaPoint: "ok" })
+          
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+
+ //아이디어 게시물 포인트 회수
+app.patch('/returnIdeaPoint', func.adChkSession ,(req, res) => {
+ 
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      //게시물 포인트가 0인지 확인
+      var sql = "select add_point from idea where idea_id = ?;"
+      var param = [req.body.id]
+      connection.query(sql, param, function (err, result) {
+        if(!err){
+          if(result[0].add_point != 0){
+            console.log("0")
+            
+            var newsql = "update idea set add_point = add_point-500 where idea_id = ?;" +
+            "update member set use_point  = use_point - 500, member_point = member_point-500 where member_email = ?;"+
+            "INSERT INTO point(member_email, use_date, use_contents) VALUE( ?,now(),'포인트 회수') "
+            var newparam = [req.body.id, req.body.email, req.body.email ]
+            connection.query(newsql, newparam, function (err, result) {
+              if (!err) {
+                connection.release();
+                res.json({ ideaPoint: "ok" })
+                
+              } else {
+                connection.release();
+                console.log(err)
+                res.json({ db: "err" })
+              }
+            })
+          }else{
+            connection.release();
+            console.log(err)
+            res.json({ point: "0" })
+          }
+      }else{
+        connection.release();
+    console.log("db 에러")
+    res.json({ db: err})
+      }
+        
+    
+  })
+    
+    
+
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+
+})
+
+//관리자 탈퇴
+app.patch('/secede', func.adChkSession ,(req, res) => {
+ 
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      
+      //게시물 
+      var sql = "update admin set admin_secede = 1 where admin_email = ?;" 
+      var param = [req.session.adMyEmail]
+      connection.query(sql, param, function (err, result) {
+      if (!err) {
+        req.session.destroy(function (err) {
+          if (!err) {
+            connection.release();
+            console.log("관리자 탈퇴");
+            res.json({ move: "/" })
+          } else {
+            connection.release();
+            console.log("세션에러", err);
+            res.json({ session: "err" })
+          }
+        });
+          
+        
+      } else {
+        connection.release();
+        console.log(err)
+        res.json({ db: "err" })
+      }
+    })
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+
+})
+
+
+
+
+//문의게시판 답변하기, 수정도 같이
+app.patch('/csAnswer', func.adChkSession ,(req, res) => {
+ 
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      
+      //게시물 
+      var sql = "update cs set admin_email = ?, cs_resp = ?, cs_resp_date = curdate() where cs_id =? " 
+      var param = [req.session.adMyEmail, req.body.resp , req.body.id]
+      connection.query(sql, param, function (err, result) {
+      if (!err) {
+        connection.release();
+
+        res.json({ csAnswer: "ok" })
+      } else {
+        connection.release();
+        console.log(err)
+        res.json({ db: "err" })
+      }
+    })
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+
+})
+
+
+//문의게시판 로그보기
+app.get('/csLog', func.adChkSession ,(req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+    console.log('limit: ' + limit)
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "SELECT * FROM cs inner join cs_log where cs.cs_id = cs_log.cs_id ORDER BY cs_edit_date DESC limit ?,?;" +
+        "SELECT count(cs_log.cs_id) as num FROM cs inner join cs_log where cs.cs_id = cs_log.cs_id ; "
+        var param = [limit, pageNum]
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+          if (result[0] == null) {
+            connection.release();
+            console.log("result:" + 0)
+            res.json({ result: "empty" })
+          } else {
+            var postNum = func.checkPage(result[1][0].num)
+            connection.release();
+            res.json({
+              result: result,
+              postNum: postNum
+            })
+          }
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+//문의게시판 삭제
+app.delete('/cs/delete',func.adChkSession , (req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      
+      //게시물 
+      var sql = "update cs set cs_delete = 1 where cs_id =? " 
+      var param = [req.body.id]
+      connection.query(sql, param, function (err, result) {
+      if (!err) {
+        connection.release();
+
+        res.json({ delete: "ok" })
+      } else {
+        connection.release();
+        console.log(err)
+        res.json({ db: "err" })
+      }
+    })
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+})
+
+//고객센터 보기
+app.get('/contact', func.adChkSession ,(req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+    console.log('limit: ' + limit)
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "select * from contact  ORDER BY contact_id DESC limit ?,?;" +
+        "select count(contact_id) as num from contact "
+        var param = [limit, pageNum]
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+          if (result[0] == null) {
+            connection.release();
+            console.log("result:" + 0)
+            res.json({ result: "empty" })
+          } else {
+            var postNum = func.checkPage(result[1][0].num)
+            connection.release();
+            res.json({
+              result: result,
+              postNum: postNum
+            })
+          }
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+//고객센터 상세보기
+app.get('/contact/detail', func.adChkSession ,(req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "select * from contact where contact_id=? ;"
+      var param = [req.query.send]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          connection.release();
+          res.json({
+            result: result
+          })
+        } else {
+          connection.release();
+          console.log("에러:" + err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+})
+
+//고객센터 답변하기
+app.post('/contactAnswer', func.adChkSession ,(req, res) => {
+ 
+pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "SELECT * from contact_log where contact_id = ?; " 
+      var param = [req.body.id]
+      connection.query(sql, param, async function (err, result) {
+        console.log("result[0].contact_id:"+result[0])
+        if(result[0] || null || undefined || 0 || NaN){
+    
+          await func.contactEmail(req.body.email,req.body.resp)
+         
+          // 게시물 
+          var newsql = "INSERT INTO contact_log set contact_id = ?, contact_send = now(), contact_response = ? " 
+          var newparam = [req.body.id,req.body.resp]
+          connection.query(newsql, newparam, function (err, result) {
+            if (!err) {
+              connection.release();
+              
+              res.json({ csAnswer: "ok" })
+            } else {
+              connection.release();
+              console.log(err)
+              res.json({ db: "err" })
+            }
+          })
+          
+          
+        }else{
+          connection.release();
+              console.log(err)
+              res.json({ contactAnswer: "alreay answer" })
+        }
+      
+      
+    })
+
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+
+})
+
+//고객센터 로그보기
+app.get('/contactLog', func.adChkSession ,(req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+    console.log('limit: ' + limit)
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "select * from contact_log  ORDER BY contact_send DESC limit ?,?;" +
+        "select count(contact_id) as num from contact_log "
+        var param = [limit, pageNum]
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+          if (result[0] == null) {
+            connection.release();
+            console.log("result:" + 0)
+            res.json({ result: "empty" })
+          } else {
+            var postNum = func.checkPage(result[1][0].num)
+            connection.release();
+            res.json({
+              result: result,
+              postNum: postNum
+            })
+          }
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+//고객센터 검색
+app.get('/contact/search', func.adChkSession ,(req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+    console.log('limit: ' + limit)
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "select * from contact where match(contact_title) against(? IN boolean mode) ORDER BY contact_title DESC limit ?,?;" +
+        "select count(contact_title) as num from contact where match(contact_title) against( ? IN boolean mode) "
+        var param = [req.query.send + '*', limit, pageNum, req.query.send + '*']
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+          if (result[0] == null) {
+            connection.release();
+            console.log("result:" + 0)
+            res.json({ result: "empty" })
+          } else {
+            var postNum = func.checkPage(result[1][0].num)
+            connection.release();
+            res.json({
+              result: result,
+              postNum: postNum
+            })
+          }
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+//아이디어 게시판 삭제하기
+app.delete('/idea/delete',func.adChkSession , (req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      
+      var sql = "select add_point from idea where idea_id = ?;" 
+      var param = [req.body.id]
+      connection.query(sql, param, function (err, result) {
+        if(!err){
+          console.log("result[0].add_point: "+result[0].add_point)
+          if(result[0].add_point == 0){
+            
+            var newsql = "update idea set idea_delete = 1 where idea_id =? "
+            var newparam = [req.body.id]
+            connection.query(newsql, newparam, function (err, result) {
+              if (!err) {
+                connection.release();
+                
+                res.json({ delete1: "ok" })
+              } else {
+                connection.release();
+                console.log(err)
+                res.json({ db: "err" })
+              }
+            })
+            
+            
+          }else{
+            var adPoint = result[0].add_point
+            var newsql = "update idea set idea_delete = 1 where idea_id =?; "+"update member set member_point = member_point - ?, save_point = save_point-? where member_email = (select member_email from idea where idea_id = ?);"+
+            "update idea set add_point = 0 where idea_id = ?;"
+            var newparam = [req.body.id, adPoint, adPoint, req.body.id,req.body.id]
+            connection.query(newsql, newparam, function (err, result) {
+              if (!err) {
+                connection.release();
+                
+                res.json({ delete2: "ok" })
+              } else {
+                connection.release();
+                console.log(err)
+                res.json({ db: "err" })
+              }
+            })
+          }
+          
+        }else{
+          connection.release();
+                console.log(err)
+                res.json({ db: "err" })
+        }
+        })
+        
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+})
+
+//아이디어 게시판 수정로그 보기
+app.get('/ideaLog', func.adChkSession ,(req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "select * from idea_log where idea_log.idea_id=? ;"
+      var param = [req.query.id]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          connection.release();
+          res.json({
+            result: result
+          })
+        } else {
+          connection.release();
+          console.log("에러:" + err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+})
+
+
+
 //공지사항 올리기
     app.post('/noticeUpload',func.adChkSession , upload.array('sendImg'), function(req, res ) {
       if(req.files[0]==null){
@@ -671,4 +1178,279 @@ app.get('/totalUserLog/search',func.adChkSession , (req, res) => {
       
     })
       
+
+//공지사항 수정
+app.patch('/notice/Reset', func.adChkSession, upload.array('sendImg'), (req, res) => {
+ 
+  //파일 삭제 -> 업데이트
+      pool.getConnection(function (err, connection) {
+        if (!err) {
+          
+          var sql =  "select *  FROM notice_file_dir WHERE notice_id=?;"
+          var param = [req.body.notice_id]
+          connection.query(sql, param, function (err, result) {
+            if (!err) {
+              console.log(" result[i].notice_file_path: "+ result[0].notice_file_path)
+              
+              var i = 0
+              while(result[i]!=null){
+                
+                //파일삭제
+                fs.unlink("./"+ result[i].notice_file_path, function(err){
+                  if( err ) {  console.log(err)}
+                  console.log('file delete');
+                  
+                });
+                
+                i++
+              }
+              
+              var sql = "UPDATE notice_log SET notice_edit_date = now(), notice_before_contents = (SELECT notice_contents from notice WHERE notice_id = ?) WHERE notice_id = ?;" +
+                    "UPDATE notice SET notice_title = ? , notice_contents = ? WHERE notice_id = ?;" + "UPDATE notice_file_dir SET notice_file_name=?,notice_file_path=? WHERE notice_id = ?;"
+                  var param = [ req.body.notice_id, req.body.notice_id, req.body.notice_title, req.body.notice_contents, req.body.notice_id, req.files[0].originalname, req.files[0].path, req.body.notice_id]
+                  connection.query(sql, param, function (err, result) {
+                    if(!err){
+                      
+                      connection.release();
+                      res.json({result:"ok"})
+                    }else{
+                      
+                      connection.release();
+                      res.json({db:err})
+                    }
+                  })
+            } else {
+              connection.release();
+              
+              res.json({ db: err })
+            }
+          })
+        } else {
+          connection.release();
+          console.log("풀 에러")
+          res.json({ pool: "err" })
+        }
+      })
+    
+  
+  })
+
+
+  //공지사항 로그보기
+  app.get('/noticeLog', func.adChkSession ,(req, res) => {
+    var limit = 15 * (req.query.pageNum - 1)
+      console.log('limit: ' + limit)
+      pool.getConnection(function (err, connection) {
+        if (!err) {
+          
+          //게시물 
+          var sql = "select * from notice_log  ORDER BY notice_edit_date DESC limit ?,?;" +
+          "select count(notice_id) as num from notice_log "
+          var param = [limit, pageNum]
+          connection.query(sql, param, function (err, result) {
+          if (!err) {
+            if (result[0] == null) {
+              connection.release();
+              console.log("result:" + 0)
+              res.json({ result: "empty" })
+            } else {
+              var postNum = func.checkPage(result[1][0].num)
+              connection.release();
+              res.json({
+                result: result,
+                postNum: postNum
+              })
+            }
+          } else {
+            connection.release();
+            console.log(err)
+            res.json({ db: "err" })
+          }
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  
+  })
+
+
+//공지사항 개인로그보기
+app.get('/noticeLog/detail', func.adChkSession ,(req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "select * from notice_log where notice_log.notice_id=?;"
+      var param = [req.query.id]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          connection.release();
+          res.json({
+            result: result
+          })
+        } else {
+          connection.release();
+          console.log("에러:" + err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+})
+
+
+//공지사항 삭제
+app.delete('/notice/delete',func.adChkSession , (req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      
+      //게시물 
+      var sql = "update notice set notice_delete = 1 where notice_id =? " 
+      var param = [req.body.id]
+      connection.query(sql, param, function (err, result) {
+      if (!err) {
+        connection.release();
+
+        res.json({ delete: "ok" })
+      } else {
+        connection.release();
+        console.log(err)
+        res.json({ db: "err" })
+      }
+    })
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.json({ pool: "err" })
+  }
+})
+})
+
+
+//로그아웃
+app.get('/logout', (req, res) => {
+
+  req.session.destroy(function (err) {
+    console.log("로그아웃");
+    res.json({ move: '/' })
+  });
+})
+
+//모든회원 정보보기
+app.get('/memberInfo',func.adChkSession, (req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+      console.log('limit: ' + limit)
+      pool.getConnection(function (err, connection) {
+        if (!err) {
+          
+          //게시물 
+          var sql = "select * from member where member_secede = 0 ORDER BY member_name ASC limit ?,?;" +
+          "select count(member_email) as num from member where member_secede = 0 "
+          var param = [limit, pageNum]
+          connection.query(sql, param, function (err, result) {
+          if (!err) {
+            if (result[0] == null) {
+              connection.release();
+              console.log("result:" + 0)
+              res.json({ result: "empty" })
+            } else {
+              var postNum = func.checkPage(result[1][0].num)
+              connection.release();
+              res.json({
+                result: result,
+                postNum: postNum
+              })
+            }
+          } else {
+            connection.release();
+            console.log(err)
+            res.json({ db: "err" })
+          }
+        })
+      } else {
+        connection.release();
+        console.log("풀 에러")
+        res.json({ pool: "err" })
+      }
+    })
+  
+})
+
+
+
+//자세한 회원정보 보기
+app.get('/memberInfo/detail', func.adChkSession ,(req, res) => {
+  pool.getConnection(function (err, connection) {
+    if (!err) {
+      var sql = "select * from member where member_email = ?;"
+      var param = [req.query.email]
+      connection.query(sql, param, function (err, result) {
+        if (!err) {
+          connection.release();
+          res.json({
+            result: result,
+            phone: func.Decrypt(result[0].member_phone)
+          })
+        } else {
+          connection.release();
+          console.log("에러:" + err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+})
+
+
+//회원검색
+app.get('/memberInfo/search', func.adChkSession ,(req, res) => {
+  var limit = 15 * (req.query.pageNum - 1)
+    console.log('limit: ' + limit)
+    pool.getConnection(function (err, connection) {
+      if (!err) {
+        
+        //게시물 
+        var sql = "SELECT member_email, member_name, member_sex FROM member WHERE MATCH (member_name) AGAINST ( ? IN BOOLEAN MODE) or MATCH (member_email) AGAINST ( ? IN BOOLEAN MODE) ORDER BY member_name DESC limit ?,?;" +
+        "SELECT count(member_email) as num FROM member WHERE MATCH (member_name) AGAINST ( ? IN BOOLEAN MODE) or MATCH (member_email) AGAINST (? IN BOOLEAN MODE);"
+        var param = [req.query.send + '*', req.query.send + '*',  limit, pageNum, req.query.send + '*', req.query.send + '*']
+        connection.query(sql, param, function (err, result) {
+        if (!err) {
+          if (result[0] == null) {
+            connection.release();
+            console.log("result:" + 0)
+            res.json({ result: "empty" })
+          } else {
+            var postNum = func.checkPage(result[1][0].num)
+            connection.release();
+            res.json({
+              result: result,
+              postNum: postNum
+            })
+          }
+        } else {
+          connection.release();
+          console.log(err)
+          res.json({ db: "err" })
+        }
+      })
+    } else {
+      connection.release();
+      console.log("풀 에러")
+      res.json({ pool: "err" })
+    }
+  })
+
+})
+
+
+
       module.exports = app;

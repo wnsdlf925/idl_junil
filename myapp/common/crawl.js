@@ -25,7 +25,7 @@ var cron = require('node-cron');
 cron.schedule('* * 4 * * *', async() => {
   
 console.log('매 30초 마다 실행');
-//checkCrawl()
+checkCrawl()
 //랭킹
 await func.insertRank()
 });
