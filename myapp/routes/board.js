@@ -14,27 +14,41 @@ app.use(session)
 const pageNum = 15
 
 
-
 var moment = require('moment');
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
 
 
-//삭제
-const noti = /^[0-9]/;
-const puppeteer = require('puppeteer');
-const { json } = require('express')
-let nextPage = true //크롤링 페이지 넘기기
-let oriUrl = 'https://cse.kangwon.ac.kr/index.php?mt=page&mp=5_3&mm=oxbbs&oxid=6&key=&val=&subcmd=&CAT_ID=0&artpp=15&cpage='
 
+// app.get('/test', (req, res) => {
+//   pool.getConnection(function (err, connection) {
+//     if (!err) {
+//       var sql = "select * from anno where anno_id=?;"
+//       var param = [req.query.send, req.query.send]
+//       connection.query(sql, param, function (err, row, fields) {
+//         if (!err) {
+//           connection.release();
+//           console.log("fields: " +fields)
+//           console.log("row: " +row)
+//           res.json({
+//             result: fields,
+//             row:row
+//           })
+//         } else {
+//           connection.release();
+//           console.log("에러:" + err)
+//           res.json({ db: "err" })
+//         }
+//       })
+//     } else {
+//       connection.release();
+//       console.log("풀 에러")
+//       res.json({ pool: "err" })
+//     }
+//   })
 
-
-
-
-app.get('/test', (req, res) => {
-
-})
+// })
 
 
 
@@ -52,12 +66,12 @@ app.post('/contact',  function (req, res) {
         if (!err) {
           connection.release();
           console.log(err)
-          res.json({ contact: "ok" })
+          res.status(200).json({ contact: "ok" })
           
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
 
 
@@ -65,7 +79,7 @@ app.post('/contact',  function (req, res) {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -91,12 +105,12 @@ app.get('/totalRank', (req, res) => {
         if (!err) {
           connection.release();
           console.log(err)
-          res.json({ totalRank: result })
+          res.status(200).json({ totalRank: result })
           
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
 
 
@@ -104,7 +118,7 @@ app.get('/totalRank', (req, res) => {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -133,13 +147,13 @@ app.get('/anno', (req, res) => {
 
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
 
 
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -147,7 +161,7 @@ app.get('/anno', (req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
 
 
@@ -155,7 +169,7 @@ app.get('/anno', (req, res) => {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -171,19 +185,19 @@ app.get('/anno/detail', (req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -209,12 +223,12 @@ app.get('/anno/search', (req, res) => {
 
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
 
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -222,7 +236,7 @@ app.get('/anno/search', (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({err: '1', contents: '잘못된 값' })
           }
 
 
@@ -230,12 +244,12 @@ app.get('/anno/search', (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -259,13 +273,13 @@ app.get('/idea', (req, res) => {
 
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
 
 
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -273,7 +287,7 @@ app.get('/idea', (req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
 
 
@@ -281,7 +295,7 @@ app.get('/idea', (req, res) => {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -305,11 +319,11 @@ app.get('/idea/search', (req, res) => {
             if (result[0][0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -317,7 +331,7 @@ app.get('/idea/search', (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값'})
           }
 
 
@@ -325,12 +339,12 @@ app.get('/idea/search', (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -357,13 +371,13 @@ app.get('/cs', (req, res) => {
 
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
 
 
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -371,7 +385,7 @@ app.get('/cs', (req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
 
 
@@ -379,7 +393,7 @@ app.get('/cs', (req, res) => {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -397,19 +411,19 @@ app.get('/cs/detail', (req, res) => {
 
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -430,17 +444,17 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
           if (!err) {
             connection.release();
             console.log("성공")
-            res.json({ notice: "ok" })
+            res.status(200).json({ notice: "ok" })
           } else {
             connection.release();
             console.log(req.body.title)
-            res.json({ db: err })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
@@ -465,12 +479,12 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
             connection.query(newsql, param, function (err, result) {
               if (!err) {
                 connection.release();
-                res.json({ notice: "ok" })
+                res.status(200).json({ notice: "ok" })
 
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: err })
+                res.status(400).json({ err: '1', contents: '잘못된 값'})
               }
 
             })
@@ -480,14 +494,14 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
           } else {
             connection.release();
             console.log(req.body.title)
-            res.json({ 첫db: err })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
 
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패'})
       }
     })
   }
@@ -497,7 +511,7 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
 
 //문의게시판 올리기 직전
 app.get('/cs/', func.ChkSession, function (req, res) {
-  res.json({ name: req.session.myName })
+  res.status(200).json({ name: req.session.myName })
 
 })
 
@@ -514,23 +528,23 @@ app.get('/cs/download', function (req, res) {
           if (result[0] != null) {
 
             var filePath = result[0].cs_file_path
-            res.download(filePath)
+            res.status(200).download(filePath)
           } else {
 
             console.log("에러:" + err)
-            res.json({ file: "err" })
+            res.status(400).json({err: '6', contents: '경로에 파일이 없음'})
           }
 
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결 실패'})
     }
   })
 
@@ -556,12 +570,12 @@ app.get('/cs/search', (req, res) => {
 
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
 
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -569,7 +583,7 @@ app.get('/cs/search', (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
 
 
@@ -577,12 +591,12 @@ app.get('/cs/search', (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '1', contents: 'db 연결실패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -605,31 +619,31 @@ app.get('/notice', function (req, res) {
             connection.query(sql, param, function (err, result) {
               if (!err) {
                 connection.release();
-                res.json({
+                res.status(200).json({
                   result: result,
                   postNum: postNum
                 })
               } else {
                 connection.release();
                 console.log("에러:" + err)
-                res.json({ db: "err" })
+                res.status(400).json({ err: '1', contents: '잘못된 값' })
               }
             })
           } else {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           }
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -647,19 +661,19 @@ app.get('/notice/detail', function (req, res) {
 
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -685,12 +699,12 @@ app.get('/notice/search', (req, res) => {
 
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
 
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -698,7 +712,7 @@ app.get('/notice/search', (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({err: '1', contents: '잘못된 값' })
           }
 
 
@@ -706,12 +720,12 @@ app.get('/notice/search', (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -728,23 +742,23 @@ app.get('/notice/download', function (req, res) {
           if (result[0] != null) {
 
             var filePath = result[0].notice_file_path
-            res.download(filePath)
+            res.status(200).download(filePath)
           } else {
 
             console.log("에러:" + err)
-            res.json({ file: "err" })
+            res.status(400).json({ err: '6', contents: '경로에 파일이 없음' })
           }
 
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 

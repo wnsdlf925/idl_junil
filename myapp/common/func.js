@@ -76,7 +76,7 @@ func.insertRank = function(){
 
     console.log('만료됨')
     
-    return res.json({move: '/',
+    return res.status(400).json({move: '/',
     ChkSession: "false" 
   })
   } else {
@@ -95,7 +95,7 @@ func.adChkSession =function(req, res, next) {
 
     console.log('만료됨')
     
-    return res.json({move: '/',
+    return res.status(400),json({move: '/',
     ChkSession: "false" 
   })
   } else {
@@ -109,25 +109,7 @@ func.adChkSession =function(req, res, next) {
 
 //----------------------------------------------------------------------------------------------------------------------------------------------
 
-//관리자 세션 유효시간 검사예시----------------------------------------------------------------------------------------------------------------------------------
-func.ChkAdSession =function(req, res, next) {
 
-  // 만료 확인 후 세션 삭제 
-  if (req.session.adMyEmail == null) {
-
-    console.log('만료됨')
-    
-    return res.json({move: '/'})
-  } else {
-
-    console.log('유효함')
-
-
-    return next()
-  }
-}
-
-//----------------------------------------------------------------------------------------------------------------------------------
 
 
 

@@ -3,16 +3,14 @@ const express = require('express')
 const app = express()
 app.use(express.json())
 
-let pool = require('../common/database.js')//db 
-let func = require('../common/func.js');//함수
+let pool = require('./database.js')//db 
+let func = require('./func.js');//함수
 const noti = /^[0-9]/;
 const puppeteer = require('puppeteer');
 let nextPage = true //크롤링 페이지 넘기기
 let oriUrl = 'https://cse.kangwon.ac.kr/index.php?mt=page&mp=5_3&mm=oxbbs&oxid=6&key=&val=&subcmd=&CAT_ID=0&artpp=15&cpage='
 var win = require('../config/winston');
 var moment = require('moment');
-moment().format(); //2018-11-18T22:19:20+09:00
-moment().format("MM-DD-YYYY"); //11-18-2018
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
@@ -22,12 +20,11 @@ moment.tz.setDefault("Asia/Seoul");
 var cron = require('node-cron');
 
 
-cron.schedule('* * 4 * * *', async() => {
-  
-console.log('매 30초 마다 실행');
-checkCrawl()
+cron.schedule('*/40 * * * * *', async() => {
+//inserCrawl()
+// await func.insertRank()
+//  checkCrawl()
 //랭킹
-await func.insertRank()
 });
 
 
@@ -95,16 +92,20 @@ return Promise.resolve(data);
 
 
 
-inserCrawl = async function() {
-    
+
+
+
+crawl.inserCrawl = async function() {
+  
   const data = await fizz();
   var firLength = data.length
   var secLength 
   var newsql = ""
   var ex = []
+  return new Promise(function(resolve, reject) {
   if(data[0][0]!=null){
     
-   
+    
     for(var i = 0 ;  i < firLength ; i++){
       secLength = data[i].length
       
@@ -119,21 +120,23 @@ inserCrawl = async function() {
     
   }else{
     console.log("data is empty")
+    
   }
   
   pool.getConnection(function (err, connection) {
     if (!err) {
-  connection.query(newsql, ex, function (err, result) {
-    if (!err) {
-      connection.release();
+      connection.query(newsql, ex, function (err, result) {
+        if (!err) {
+          connection.release();
+          resolve(true) 
+        } else {
+          connection.release();
+          console.log(err)
+          resolve(false) 
+          
+        }
+      })
       
-    } else {
-      connection.release();
-      console.log(err)
-      
-    }
-  })
-  
       
       
     } else {
@@ -142,9 +145,10 @@ inserCrawl = async function() {
       
     }
   })
+})
 }
 
-//inserCrawl()
+
 
 
 
@@ -239,7 +243,7 @@ let data = {};
 
 }
 
-checkCrawl = async function() {
+crawl.checkCrawl = async function() {
   const data = await checkCrawlAll();
   
   var firLength = data.length
@@ -317,4 +321,4 @@ checkCrawl = async function() {
 
 
 
-module.exports = app
+module.exports = crawl

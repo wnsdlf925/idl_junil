@@ -799,7 +799,7 @@ PARAM : KEY = member-email, VALUE= 정지한 사용자의 이메일
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`10. 회원 탈퇴 시키기`
+`*10. 회원 탈퇴 시키기`
 
 URL  : [POST] http://{IP} : {PORT}/admin/userout
 
@@ -844,7 +844,7 @@ PARAM : KEY = member-email, VALUE= 이메일
 응답: 성공시 true, 틀리면 false를 반환
 
 
-`11. 탈퇴 로그보기`
+`*11. 탈퇴 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/userout/log
 
@@ -864,7 +864,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/userout/log
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`12. 탈퇴 로그검색`
+`*12. 탈퇴 로그검색`
 
 
 URL  : [GET] http://{IP} : {PORT}/admin/userout/logsearch
@@ -887,7 +887,7 @@ PARAM : KEY = out-member-email, VALUE= 탈퇴자 이메일
 
 --------------------------
 
-`13. 회원 최근 로그인 로그보기`
+`*13. 회원 최근 로그인 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/user/loglately
 
@@ -903,7 +903,7 @@ PARAM : KEY = member-email, VALUE= 사용자 이메일
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`14. 회원 최근 로그 검색`
+`*14. 회원 최근 로그 검색`
 
 URL  : [GET] http://{IP} : {PORT}/admin/user/logsearch
 
@@ -919,7 +919,7 @@ PARAM : KEY = member-email, VALUE= 사용자 이메일
 
 응답: 검색어가 들어간 사용자의 이메일을 찾았을 경우 true, 아니면 false를 반환한다.
 
-`15. 모든 회원의 총 로그 보기`
+`*15. 모든 회원의 총 로그 보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/user/logtotal
 
@@ -931,7 +931,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/user/logtotal
 
 응답: 출력했을 경우 true, 아니면 false를 반환한다.
 
-`15. 회원의 총 로그 검색`
+`*15. 회원의 총 로그 검색`
 
 URL  : [GET] http://{IP} : {PORT}/admin/user/logtotalsearch
 
@@ -947,7 +947,7 @@ PARAM : KEY = member-email, VALUE= 사용자 이메일
 
 ----------------------------------------
 
-`16. 아이디어 게시물에 포인트 주기`
+`*16. 아이디어 게시물에 포인트 주기`
 
 **아이디어 목록이 나오고 들어가면 안에 포인트를 주는 버튼을 만든다.**
 
@@ -967,7 +967,7 @@ PARAM : KEY = add_point, VALUE= 얻은 포인트
 
 응답: 테이블 갱신을 성공했을 경우 true, 아니면 false를 반환한다.
 
-`17. 아이디어 게시물에서 포인트 회수`
+`*17. 아이디어 게시물에서 포인트 회수`
 
 **포인트 회수 버튼을 클릭시 누적,현재 포인트를 갱신은 서버에서**
 
@@ -993,7 +993,7 @@ PARAM : KEY = idea-id, VALUE= 게시물 번호
 
 ---------------------------------------
 
-`18. 관리자 탈퇴`
+`*18. 관리자 탈퇴`
 
 URL  : [POST] http://{IP} : {PORT}/admin/out
 
@@ -1029,7 +1029,7 @@ URL  : [POST] http://{IP} : {PORT}/admin/out
 
 응답: 성공시 true, 틀리면 false를 반환
 
-`19. 사용자의 포인트 내역 보기`
+`*19. 사용자의 포인트 내역 보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/userpoint
 
@@ -1041,7 +1041,7 @@ PARAM : KEY = member-email, VALUE= 이메일
 
 ----------------------------------------
 
-`20. 문의게시판 답변하기`
+`*20. 문의게시판 답변하기`
 
 URL  : [PUT] http://{IP} : {PORT}/board/cs/anser
 
@@ -1063,7 +1063,7 @@ PARAM : KEY = cs-id, VALUE= 문의글 번호
 
 응답: 업데이트가 되었다면 true, 아니라면 false를 반환
 
-`20. 문의게시판 수정`
+`*20. 문의게시판 수정`
 
 **수정 전 화면이 그대로 나오고 수정하기 누르면 갱신됨, 개인정보수정과 비슷**
 
@@ -1089,7 +1089,7 @@ PARAM : KEY = cs-id, VALUE= 문의글 번호
 
 응답: 업데이트가 되었다면 true, 아니라면 false를 반환
 
-`21. 문의게시판 로그보기`
+`*21. 문의게시판 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/cs/log
 
@@ -1106,7 +1106,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/cs/log
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`22. 문의게시판 로그검색`
+`*22. 문의게시판 로그검색`
 
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/cs/logsearch
@@ -1123,7 +1123,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/cs/logsearch
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`23. 문의게시판 삭제`
+`*23. 문의게시판 삭제`
 
 URL  : [DELETE] http://{IP} : {PORT}/board/cs
 
@@ -1135,7 +1135,7 @@ URL  : [DELETE] http://{IP} : {PORT}/board/cs
 
 ------------------------------------------
 
-`24. 고객센터 답변하기`
+`*24. 고객센터 답변하기`
 
 URL  : [POST] http://{IP} : {PORT}/board/contact/anser
 
@@ -1153,7 +1153,7 @@ PARAM : KEY = contact-id, VALUE= 고객센터 문의글 번호
 
 응답: 성공적으로 메일이 보내지고 답변 시간이 업데이트 되었다면 true, 아니라면 false를 반환
 
-`25. 고객센터 로그보기`
+`*25. 고객센터 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/contact/log
 
@@ -1168,7 +1168,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/contact/log
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`26. 고객센터 로그검색`
+`*26. 고객센터 로그검색, 그냥 검색으로`
 
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/contact/logsearch
@@ -1186,7 +1186,7 @@ PARAM : KEY = contact-id, VALUE= 고객센터 문의글 번호
 
 ----------------------------------------
 
-`27. 아이디어 게시판 삭제하기 `
+`*27. 아이디어 게시판 삭제하기 `
 
 URL  : [DELETE] http://{IP} : {PORT}/admin/board/idea
 
@@ -1196,7 +1196,7 @@ PARAM : KEY = idea-id, VALUE= 아이디어 게시물 번호
 
 응답:  갱신이 되었다면 true, 아니면 false를 반환한다.
 
-`28. 아이디어 게시판센터 로그보기`
+`*28. 아이디어 게시판센터 로그보기 상세에서 볼 수 있게 함`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/idea/log
 
@@ -1213,7 +1213,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/idea/log
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`29. 아이디어 게시판 로그검색`
+`*29. 아이디어 게시판 로그검색`
 
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/idea/logsearch
@@ -1234,7 +1234,7 @@ PARAM : KEY = idea-title, VALUE= 아이디어 제목
 
 --------------------------------------
 
-`30. 공고정보게시판 등록`
+`*30. 공고정보게시판 등록`
 
 URL  : [POST] http://{IP} : {PORT}/board/anno/upload
 
@@ -1258,7 +1258,7 @@ PARAM : KEY = anno-id, VALUE= 공고 번호
 
 응답: 등록이 되었다면 true, 아니라면 false를 반환
 
-`31. 공고정보게시판 수정`
+`*31. 공고정보게시판 수정`
 
 **수정 전 화면이 그대로 나오고 수정하기 누르면 갱신됨, 개인정보수정과 비슷**
 
@@ -1288,7 +1288,7 @@ PARAM : KEY = anno-id, VALUE= 공고 번호
 
 응답: 업데이트가 되었다면 true, 아니라면 false를 반환
 
-`32. 공고정보게시판 로그보기`
+`*32. 공고정보게시판 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/anno/log
 
@@ -1305,7 +1305,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/anno/log
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`33. 공고정보게시판 로그검색`
+`*33. 공고정보게시판 로그검색`
 
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/anno/logsearch
@@ -1324,7 +1324,7 @@ PARAM : KEY = anno-id, VALUE= 문의글 번호
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`34. 공고정보게시판 삭제`
+`*34. 공고정보게시판 삭제`
 
 URL  : [DELETE] http://{IP} : {PORT}/board/anno
 
@@ -1336,7 +1336,7 @@ URL  : [DELETE] http://{IP} : {PORT}/board/anno
 
 ---------------------------------
 
-`35. 공지사항게시판 등록`
+`*35. 공지사항게시판 등록`
 
 URL  : [POST] http://{IP} : {PORT}/board/notice/upload
 
@@ -1357,7 +1357,7 @@ PARAM : KEY = notice-id, VALUE= 공고 번호
 
 응답: 등록이 되었다면 true, 아니라면 false를 반환
 
-`36. 공지사항게시판 수정`
+`*36. 공지사항게시판 수정`
 
 **수정 전 화면이 그대로 나오고 수정하기 누르면 갱신됨, 개인정보수정과 비슷**
 
@@ -1383,7 +1383,7 @@ PARAM : KEY = notice-id, VALUE= 공고 번호
 
 응답: 업데이트가 되었다면 true, 아니라면 false를 반환
 
-`37. 공지사항게시판 로그보기`
+`*37. 공지사항게시판 로그보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/notice/log
 
@@ -1402,7 +1402,7 @@ PARAM : KEY = anno-id, VALUE= 문의글 번호
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`38. 공지사항게시판 로그검색`
+`*38. 공지사항게시판 로그검색 -> 개인로그검색`
 
 URL  : [GET] http://{IP} : {PORT}/admin/board/notice/logsearch
 
@@ -1418,7 +1418,7 @@ PARAM : KEY = notice-title, VALUE= 제목
 
 응답:  목록을 출력했다면 true, 아니면 false를 반환한다.
 
-`39. 공지사항게시판 삭제`
+`*39. 공지사항게시판 삭제`
 
 URL  : [DELETE] http://{IP} : {PORT}/board/notice
 
@@ -1431,7 +1431,7 @@ PARAM : KEY = anno-id, VALUE= 공지사항 번호
 응답: 갱신이 되었다면 true, 아니라면 false를 반환
 
 ---------------------------------
-`40. 로그아웃`
+`*40. 로그아웃`
 
 URL  : [POST]] http://{IP} : {PORT}/logout
 
@@ -1440,7 +1440,7 @@ URL  : [POST]] http://{IP} : {PORT}/logout
 
 응답: 종료되었다면 true, 안되었다면 false를 반환
 
-`41.모든 회원 정보보기`
+`*41.모든 회원 정보보기`
 
 **모든 이름과 이메일이 나오고 클릭시 그 사람의 모든 정보가 나온다**
 
@@ -1454,7 +1454,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/userimfor
 
 응답: 출력에 성공했다면 true, 안되었다면 false를 반환
 
-`42. 자세한 회원 정보보기`
+`*42. 자세한 회원 정보보기`
 
 URL  : [GET] http://{IP} : {PORT}/admin/userimfor
 
@@ -1465,7 +1465,7 @@ PARAM :  KEY = member-email, VALUE= 회원의 이메일
 
 응답: 출력에 성공했다면 true, 안되었다면 false를 반환
 
-`43. 회원 검색`
+`* 43. 회원 검색`
 
 **이름을 검색한다.**
 
@@ -1479,7 +1479,7 @@ PARAM : KEY = member-email, VALUE= 회원의 이메일
 
 응답: 출력에 성공했다면 true, 안되었다면 false를 반환
 
-`44. 게시물 보기`
+`*44. 게시물 보기`
 
 **각각의 게시물 보기는 각각 게시판 보기 API를 따르지만 관리자는 수정과 삭제를 만든다**
 
@@ -1489,7 +1489,7 @@ URL  : [GET] http://{IP} : {PORT}/admin/board/notice/게시물 번호
 URL  : [GET] http://{IP} : {PORT}/admin/board/cs/게시물 번호
 URL  : [GET] http://{IP} : {PORT}/admin/board/contact/게시물 번호
 
-`45. 게시물 목록보기`
+`*45. 게시물 목록보기`
 
 **각각의 게시물 목록보기는 각각 목록보기 API를 따르고 관리자는 삭제된 게시물도 볼 수 있다.**
 

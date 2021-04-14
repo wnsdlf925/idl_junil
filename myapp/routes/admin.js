@@ -7,6 +7,7 @@ let pool = require('../common/database.js')//db
 let sess = require('../common/session.js')//세션
 let func = require('../common/func.js')//함수
 let upload = require('../common/upload.js');//파일 업로드
+var crawl = require('../common/crawl');
 var fs = require('fs');
 let session = sess.session
 app.use(session)
@@ -17,6 +18,32 @@ moment.tz.setDefault("Asia/Seoul");
 
 const realPhone = /^\d{3}-\d{3,4}-\d{4}$/; //전화번호 정규식
 const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;//이메일 정규식
+
+
+
+var cron = require('node-cron');
+
+
+cron.schedule('*/40 * * * * *', async() => {
+//inserCrawl()
+// await func.insertRank()
+//  checkCrawl()
+//랭킹
+});
+
+
+//크롤링 insert
+app.get('/insert', func.adChkSession ,async(req, res) => {
+
+  if(await crawl.inserCrawl()){
+
+    res.status(200).json({ crawl: 'ok' })
+  }else{
+    res.status(400).json({ err: '1', contents: '크롤링 err' })
+  }
+    
+  })
+
 
 
 //관리자 게시물은 따로
@@ -46,23 +73,23 @@ app.post('/login', (req, res) => {
 
               connection.release();
               console.log("로그인 성공")
-              res.json({ login: 'ok' })
+              res.status(200).json({ login: 'ok',move: '/' })
             })
           } else {
             console.log("로그인 실패")
             connection.release();
-            res.json({ login: 'fail' })
+            res.status(400).json({ err: '3', contents: '아이디나 비번을 다시 확인' })
           }
         } else {
           console.log("에러: " + err)
           connection.release();
-          res.json({ db: 'err' })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀에러: " + err)
-      res.json({ pool: 'err' })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -98,22 +125,22 @@ app.post('/join', (req, res) => {
             console.log('성공')
             console.log("DB Connection Succeeded")
             connection.release();
-            res.json({ move: '/' })
+            res.status(200).json({ move: '/' })
           } else {
             console.log("DB Connection Failed")
             console.log(err)
             connection.release();
-            res.json({ err: 'DB Connection Failed' })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         console.log('풀에러: ' + err)
         connection.release();
-        res.json({ err: 'pool err' })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
-    res.json({ fail: '전화번호나 이메일이 형식에 맞지 않습니다.' })
+    res.status(400).json({  err: '3', contents: '전화번호나 이메일이 형식에 맞지않습니다.'})
   }
 })
 
@@ -129,7 +156,7 @@ app.post('/userBan',func.adChkSession ,(req,res)=>{
       connection.query(sql, param, function (err, result) {
         if(!err){
           if(result[0].member_ban == 1){
-            res.json({ userBan: 'already ban' })
+            res.status(400).json({  err: '3', contents: '이미 벤 당함' })
           }else{
             
             var sql = "INSERT INTO member_ban(member_email, member_ban_reason, member_ban_date, admin_email) VALUE (?,?,now(),?);" +
@@ -139,11 +166,11 @@ app.post('/userBan',func.adChkSession ,(req,res)=>{
             connection.query(sql, param, function (err, rows, fields) {
               if (!err) {
                 connection.release();
-                res.json({ userBan: 'ok' })
+                res.status(200).json({ userBan: 'ok' })
               } else {
                 
                 connection.release();
-                res.json({ db: err })
+                res.status(400).json({  err: '1', contents: '잘못된 값'})
               }
             })
             
@@ -152,14 +179,14 @@ app.post('/userBan',func.adChkSession ,(req,res)=>{
         }else{
           
           connection.release();
-          res.json({ db: err })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
         
       } else {
         console.log('풀에러: ' + err)
         connection.release();
-        res.json({ err: 'pool err' })
+        res.status(400).json({  err: '2', contents: 'db 연결실패' })
       }
     })
     
@@ -182,11 +209,11 @@ app.post('/userBan',func.adChkSession ,(req,res)=>{
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -194,13 +221,13 @@ app.post('/userBan',func.adChkSession ,(req,res)=>{
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패'})
     }
   })
 })
@@ -215,19 +242,19 @@ app.get('/userBan/detail', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패'})
     }
   })
 
@@ -250,30 +277,27 @@ app.get('/userBan/search',func.adChkSession , (req, res) => {
             if (result[0][0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
-                result: result,
-                postNum: postNum
-              })
+              res.status(200).json({result: result,postNum: postNum})
             }
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({  err: '1', contents: '잘못된 값'})
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({  err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -289,11 +313,11 @@ app.post('/userSecede', func.adChkSession ,(req, res) => {
         if(!err){
           connection.release();
         console.log("풀 에러")
-        res.json({ userSecede: "ok" })
+        res.status(200).json({ userSecede: "ok" })
         }else{
         connection.release();
         console.log("풀 에러")
-        res.json({ db: err })
+        res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
           
           
@@ -303,7 +327,7 @@ app.post('/userSecede', func.adChkSession ,(req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: err })
+        res.status(400).json({  err: '2', contents: 'db 연결실패' })
       }
       
       
@@ -328,11 +352,11 @@ app.get('/userSecede/log', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -340,13 +364,13 @@ app.get('/userSecede/log', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -361,19 +385,19 @@ app.get('/userSecede/detail', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -394,11 +418,11 @@ app.get('/userSecede/search',func.adChkSession , (req, res) => {
             if (result[0][0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -406,18 +430,18 @@ app.get('/userSecede/search',func.adChkSession , (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({  err: '2', contents: 'db 연결실패'})
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -439,11 +463,11 @@ app.get('/userLog', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -451,13 +475,13 @@ app.get('/userLog', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -479,11 +503,11 @@ app.get('/userLog/search',func.adChkSession , (req, res) => {
             if (result[0][0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -491,18 +515,18 @@ app.get('/userLog/search',func.adChkSession , (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패'})
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -523,11 +547,11 @@ app.get('/totalUserLog', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -535,13 +559,13 @@ app.get('/totalUserLog', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -563,11 +587,11 @@ app.get('/totalUserLog/search',func.adChkSession , (req, res) => {
             if (result[0][0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -575,18 +599,18 @@ app.get('/totalUserLog/search',func.adChkSession , (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({  err: '1', contents: '잘못된 값'})
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({  err: '2', contents: 'db 연결싪패' })
       }
     })
   } else {
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
 })
 
@@ -605,18 +629,18 @@ app.patch('/ideaPoint', func.adChkSession ,(req, res) => {
         connection.query(sql, param, function (err, result) {
         if (!err) {
             connection.release();
-            res.json({ ideaPoint: "ok" })
+            res.status(200).json({ ideaPoint: "ok" })
           
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -644,23 +668,23 @@ app.patch('/returnIdeaPoint', func.adChkSession ,(req, res) => {
             connection.query(newsql, newparam, function (err, result) {
               if (!err) {
                 connection.release();
-                res.json({ ideaPoint: "ok" })
+                res.status(200).json({ ideaPoint: "ok" })
                 
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값'})
               }
             })
           }else{
             connection.release();
             console.log(err)
-            res.json({ point: "0" })
+            res.status(400).json({ result: "empty" })
           }
       }else{
         connection.release();
     console.log("db 에러")
-    res.json({ db: err})
+    res.status(400).json({  err: '1', contents: '잘못된 값'})
       }
         
     
@@ -671,7 +695,7 @@ app.patch('/returnIdeaPoint', func.adChkSession ,(req, res) => {
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({ err: '2', contents: 'db 연결실패'})
   }
 })
 
@@ -692,11 +716,11 @@ app.patch('/secede', func.adChkSession ,(req, res) => {
           if (!err) {
             connection.release();
             console.log("관리자 탈퇴");
-            res.json({ move: "/" })
+            res.status(200).json({ move: "/" })
           } else {
             connection.release();
             console.log("세션에러", err);
-            res.json({ session: "err" })
+            res.status(400).json({  err: '5', contents: '세션 err'})
           }
         });
           
@@ -704,13 +728,13 @@ app.patch('/secede', func.adChkSession ,(req, res) => {
       } else {
         connection.release();
         console.log(err)
-        res.json({ db: "err" })
+        res.status(400).json({ err: '1', contents: '잘못된 값' })
       }
     })
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({  err: '2', contents: 'db 연결실패' })
   }
 })
 
@@ -732,17 +756,17 @@ app.patch('/csAnswer', func.adChkSession ,(req, res) => {
       if (!err) {
         connection.release();
 
-        res.json({ csAnswer: "ok" })
+        res.status(200).json({ csAnswer: "ok" })
       } else {
         connection.release();
         console.log(err)
-        res.json({ db: "err" })
+        res.status(400).json({  err: '1', contents: '잘못된 값' })
       }
     })
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({ err: '2', contents: 'db 연결실패' })
   }
 })
 
@@ -765,11 +789,11 @@ app.get('/csLog', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -777,13 +801,13 @@ app.get('/csLog', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -802,17 +826,17 @@ app.delete('/cs/delete',func.adChkSession , (req, res) => {
       if (!err) {
         connection.release();
 
-        res.json({ delete: "ok" })
+        res.status(200).json({ delete: "ok" })
       } else {
         connection.release();
         console.log(err)
-        res.json({ db: "err" })
+        res.status(400).json({  err: '1', contents: '잘못된 값' })
       }
     })
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({  err: '2', contents: 'db 연결실패'})
   }
 })
 })
@@ -833,11 +857,11 @@ app.get('/contact', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -845,13 +869,13 @@ app.get('/contact', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -865,19 +889,19 @@ app.get('/contact/detail', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -902,11 +926,11 @@ pool.getConnection(function (err, connection) {
             if (!err) {
               connection.release();
               
-              res.json({ csAnswer: "ok" })
+              res.status(200).json({ csAnswer: "ok" })
             } else {
               connection.release();
               console.log(err)
-              res.json({ db: "err" })
+              res.status(400).json({  err: '1', contents: '잘못된 값' })
             }
           })
           
@@ -914,7 +938,7 @@ pool.getConnection(function (err, connection) {
         }else{
           connection.release();
               console.log(err)
-              res.json({ contactAnswer: "alreay answer" })
+              res.status(400).json({  err: '3', contents: '이미 답변함'})
         }
       
       
@@ -923,7 +947,7 @@ pool.getConnection(function (err, connection) {
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({  err: '2', contents: 'db 연결실패' })
   }
 })
 
@@ -945,11 +969,11 @@ app.get('/contactLog', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -957,13 +981,13 @@ app.get('/contactLog', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
@@ -986,11 +1010,11 @@ app.get('/contact/search', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -998,13 +1022,13 @@ app.get('/contact/search', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패'})
     }
   })
 
@@ -1029,11 +1053,11 @@ app.delete('/idea/delete',func.adChkSession , (req, res) => {
               if (!err) {
                 connection.release();
                 
-                res.json({ delete1: "ok" })
+                res.status(200).json({ delete1: "ok" })
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값' })
               }
             })
             
@@ -1047,11 +1071,11 @@ app.delete('/idea/delete',func.adChkSession , (req, res) => {
               if (!err) {
                 connection.release();
                 
-                res.json({ delete2: "ok" })
+                res.status(200).json({ delete2: "ok" })
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값' })
               }
             })
           }
@@ -1059,14 +1083,14 @@ app.delete('/idea/delete',func.adChkSession , (req, res) => {
         }else{
           connection.release();
                 console.log(err)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
         })
         
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({  err: '2', contents: 'db 연결실패'})
   }
 })
 })
@@ -1080,19 +1104,19 @@ app.get('/ideaLog', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -1112,19 +1136,19 @@ app.get('/ideaLog', func.adChkSession ,(req, res) => {
               if(!err){
                 connection.release();
                 console.log("성공")
-                res.json({ notice: "ok" })
+                res.status(200).json({ notice: "ok" })
                 
               }else{
                 connection.release();
                 console.log(req.body.title)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값' })
               }
               
             })
           }else{
             connection.release();
             console.log("풀 에러")
-            res.json({ pool: "err" })
+            res.status(400).json({  err: '2', contents: 'db 연결실패' })
           }
           })
       }else{
@@ -1149,12 +1173,12 @@ app.get('/ideaLog', func.adChkSession ,(req, res) => {
                   connection.query(newsql, param, function(err,result){
                     if(!err){
                     connection.release();
-                    res.json({ notice: "ok" })
+                    res.status(200).json({ notice: "ok" })
                     
                   }else{
                     connection.release();
                     console.log(err)
-                    res.json({ db: err })
+                    res.status(400).json({  err: '1', contents: '잘못된 값' })
                   }
                   
                 })
@@ -1164,14 +1188,14 @@ app.get('/ideaLog', func.adChkSession ,(req, res) => {
               }else{
                 connection.release();
                 console.log(req.body.title)
-                res.json({ db: "err" })
+                res.status(400).json({  err: '1', contents: '잘못된 값'})
               }
               
             })
           }else{
             connection.release();
             console.log("풀 에러")
-            res.json({ pool: "err" })
+            res.status(400).json({  err: '2', contents: 'db 연결실패' })
           }
           })
       }
@@ -1212,23 +1236,23 @@ app.patch('/notice/Reset', func.adChkSession, upload.array('sendImg'), (req, res
                     if(!err){
                       
                       connection.release();
-                      res.json({result:"ok"})
+                      res.status(200).json({result:"ok"})
                     }else{
                       
                       connection.release();
-                      res.json({db:err})
+                      res.status(400).json({ err: '1', contents: '잘못된 값'})
                     }
                   })
             } else {
               connection.release();
               
-              res.json({ db: err })
+              res.status(400).json({  err: '1', contents: '잘못된 값' })
             }
           })
         } else {
           connection.release();
           console.log("풀 에러")
-          res.json({ pool: "err" })
+          res.status(400).json({  err: '2', contents: 'db 연결실패'})
         }
       })
     
@@ -1252,11 +1276,11 @@ app.patch('/notice/Reset', func.adChkSession, upload.array('sendImg'), (req, res
             if (result[0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -1264,13 +1288,13 @@ app.patch('/notice/Reset', func.adChkSession, upload.array('sendImg'), (req, res
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({  err: '2', contents: 'db 연결실패' })
       }
     })
   
@@ -1286,19 +1310,19 @@ app.get('/noticeLog/detail', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패'})
     }
   })
 })
@@ -1316,17 +1340,17 @@ app.delete('/notice/delete',func.adChkSession , (req, res) => {
       if (!err) {
         connection.release();
 
-        res.json({ delete: "ok" })
+        res.status(200).json({ delete: "ok" })
       } else {
         connection.release();
         console.log(err)
-        res.json({ db: "err" })
+        res.status(400).json({  err: '1', contents: '잘못된 값' })
       }
     })
   } else {
     connection.release();
     console.log("풀 에러")
-    res.json({ pool: "err" })
+    res.status(400).json({  err: '2', contents: 'db 연결실패'})
   }
 })
 })
@@ -1337,7 +1361,7 @@ app.get('/logout', (req, res) => {
 
   req.session.destroy(function (err) {
     console.log("로그아웃");
-    res.json({ move: '/' })
+    res.status(200).json({ move: '/' })
   });
 })
 
@@ -1357,11 +1381,11 @@ app.get('/memberInfo',func.adChkSession, (req, res) => {
             if (result[0] == null) {
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             } else {
               var postNum = func.checkPage(result[1][0].num)
               connection.release();
-              res.json({
+              res.status(200).json({
                 result: result,
                 postNum: postNum
               })
@@ -1369,13 +1393,13 @@ app.get('/memberInfo',func.adChkSession, (req, res) => {
           } else {
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값'})
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({  err: '2', contents: 'db 연결실패' })
       }
     })
   
@@ -1392,20 +1416,20 @@ app.get('/memberInfo/detail', func.adChkSession ,(req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result,
             phone: func.Decrypt(result[0].member_phone)
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -1427,11 +1451,11 @@ app.get('/memberInfo/search', func.adChkSession ,(req, res) => {
           if (result[0] == null) {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result,
               postNum: postNum
             })
@@ -1439,17 +1463,20 @@ app.get('/memberInfo/search', func.adChkSession ,(req, res) => {
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '2', contents: 'db 연결실패' })
     }
   })
 
 })
+
+
+
 
 
 

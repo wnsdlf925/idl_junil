@@ -13,7 +13,7 @@ var usersRouter = require('./routes/users');
 var memberRouter = require('./routes/member');
 var boardRouter = require('./routes/board');
 var adminRouter = require('./routes/admin');
-var crawlRouter = require('./common/crawl');
+//var crawlRouter = require('./common/crawl');
 
 
 
@@ -32,7 +32,7 @@ app.use('/users', usersRouter);
 app.use('/member', memberRouter);
 app.use('/board', boardRouter);
 app.use('/admin', adminRouter);
-app.use('/crawl', crawlRouter);
+//app.use('/crawl', crawlRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -1,9 +1,9 @@
 //인증시간 만료시간 백그라운드에서 말고 인증할때 확인하고 바꾸는 것으로
 //**나중에 res.send 프론트에 맞게 설정하기**
 // import {connection} from "mysql.js"
-/* 계층팀장에게 물어보자
-*myapp에 commom에 func, config에 db,session넣기 
-*/
+
+
+
 
 const express = require('express')
 const app = express()
@@ -27,7 +27,6 @@ const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z
 
 //시간
 var moment = require('moment');
-const { json } = require('express')
 require('moment-timezone');
 moment.tz.setDefault("Asia/Seoul");
 
@@ -42,19 +41,15 @@ app.post('/join', (req, res) => {
 
 
   if (realPhone.test(req.body.member_phone) == true && realEmail.test(req.body.member_email) == true) {//전화번호 정규식
-
-
     pool.getConnection(async function (err, connection) {
       if (!err) {
-
-
         var joinlog = moment().format('YYYY-MM-DD HH:mm:ss');
         console.log(joinlog)
         var sql = "INSERT INTO ideapf.member (member_email, member_name, member_sex, member_birth, member_company, member_state, member_pw, member_phone, chosen_agree, member_rank) VALUE(?,?,?,?,?,?,?,?,?,?);" +
           "INSERT INTO member_login_log (member_email,member_login) VALUE(?,?);" +
           "INSERT INTO member_log (member_email,member_log_join,member_login_lately) VALUE(?,?,?);"
         var param = [req.body.member_email, req.body.member_name, req.body.member_sex, req.body.member_birth, req.body.member_company, req.body.member_state, func.Pass(req.body.member_pw), func.Encrypt(req.body.member_phone), req.session.chosenAgree, await func.RankCheck(), req.body.member_email, joinlog, req.body.member_email, joinlog, joinlog,]
-        connection.query(sql, param, function (err, rows, fields) {
+        connection.query(sql, param, function (err) {
           if (!err) {
             req.session.myEmail = req.body.member_email
             req.session.myPw = req.body.member_pw
@@ -71,27 +66,24 @@ app.post('/join', (req, res) => {
             console.log('성공')
             console.log("DB Connection Succeeded")
             connection.release();
-            res.json({ move: '/' })
-
+            res.status(200).json({ move: '/' })
           } else {
             console.log("DB Connection Failed")
-
             console.log(err)
-
             connection.release();
-            res.json({ err: 'DB Connection Failed' })
+            res.status(400).json({ err: '1', Contents: "옳지 않은 값임" })
           }
         })
       } else {
         console.log('풀에러: ' + err)
         connection.release();
-        res.json({ err: 'pool err' })
+        res.status(400).json({ err: '2', Contents: "db 연결 실패"})
       }
 
     })
 
   } else {
-    res.json({ fail: '전화번호나 이메일이 형식에 맞지 않습니다.' })
+    res.status(400).json({ err: '3', contents: '전화번호나 이메일이 형식에 맞지 않습니다.' })
   }
 })
 
@@ -128,34 +120,32 @@ app.post('/joinAuth', (req, res) => {
 
                         console.log("DB Connection Succeeded이메일 테이블")
                         connection.release();
-                        res.json({ joinAuth: 'ok' })
+                        res.status(200).json({ joinAuth: 'ok' })
 
                       } else {
                         console.log("SendCheckEmail에러")
                         connection.release();
-                        res.json({ err: 'SendCheckEmail에러' })
+                        res.status(424).json({ err: '4', contents: '이메일 발송 실패' })
                       }
 
                     } else {
                       console.log(err)
                       console.log("DB Connection Failed이메일 테이블")
                       connection.release();
-                      res.json({ err: 'DB Connection Failed이메일 테이블' })
+                      res.status(400).json({ err: '1', contents: '잘못된 값임' })
 
                     }
                   })
                 } else {
                   console.log('중복됨')
                   connection.release();
-                  res.json({ fail: '중복됨' })
+                  res.status(401).json({ err: '3', contents: '아이디가 중복됨' })
                 }
-
-                console.log("DB Connection Succeeded중복확인")
-
+                
               } else {
                 console.log("DB Connection Failed중복확인")
                 connection.release();
-                res.json({ err: 'DB Connection Failed중복확인' })
+                res.status(400).json({ err: '1', contents: '잘못된 값임' })
               }
 
             })
@@ -165,21 +155,22 @@ app.post('/joinAuth', (req, res) => {
             console.log("리솔트 : " + results)
             console.log("인증키 두번누름")
             connection.release();
-            res.json({ fail: '인증키 두번누름' })
+            res.status(401).json({  err: '3', contents: '인증키 중복됨' })
           }
         } else {
           console.log('err' + err)
           console.log("인증키 두번누름 부분 에러")
           connection.release();
-          res.json({ err: '인증키 두번누름 부분 에러' })
+          res.status(400).json({ err: '1', contents: '잘못된 값임' })
         }
       })
     } else {
       console.log('풀에러: ' + err)
       connection.release();
-      res.json({ err: 'pool err' })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
 
+    
   })
 
 })
@@ -212,32 +203,32 @@ app.get('/check', (req, res) => {
                   if (err) {
                     console.log(err)
                     connection.release();
-                    res.json({ err: 'db err' })
+                    res.status(401).json({ err: '1', contents: '잘못된 값임' })
                   } else {
-                    //res.redirect("/join")
+                    //res.status().redirect("/join")
                     req.session.idsend = req.query.send
                     connection.release();
                     console.log("리다이렉션.")
-                    res.json({ move: '/member/chosenAgree' })
+                    res.status(200).json({ move: '/member/chosenAgree' })
                   }
                 })
               } else {
                 connection.release();
                 console.log("이미 만료된 번호입니다. 다시 인증하셈")
-                res.json({ fail: '이미 만료된 번호입니다. 다시 인증하셈' })
+                res.status(401).json({ err: '3', contents: '이미 만료된 번호입니다. 다시 인증하셈' })
               }
             } else {
               connection.query("UPDATE email_auth SET email_auth_flag = 0, email_dispose = 1 WHERE  email_key_id =" + results[0].email_key_id, function (err, result) {
                 if (err) {
                   console.log(err)
                   connection.release();
-                  res.json({ err: 'db' })
+                  res.status(400).json({ err: '1', contents: '잘못된 값임'})
                 } else {
-                  //res.redirect("/join")
+                  //res.status().redirect("/join")
                   req.session.idsend = req.query.send
                   console.log("리다이렉션.")
                   connection.release();
-                  res.json({ move: '/join' })
+                  res.status(200).json({ move: '/join' })
                 }
               })
               console.log("reDate: " + reDate)
@@ -247,13 +238,13 @@ app.get('/check', (req, res) => {
           } else {
             console.log("인증실패 테이블에 없음")
             connection.release();
-            res.json({ fail: '인증실패 테이블에 없음' })
+            res.status(401).json({ err: '1', contents: '인증실패 테이블에 없음' })
           }
         }
       })
     } else {
       connection.release();
-      res.json({ err: 'pool err' })
+      res.status(400).json({ err: '2', contents: 'db 연결실패'})
     }
   })
 })
@@ -293,29 +284,29 @@ app.post('/login', (req, res) => {
               if(!err){
                 
                 connection.release();
-                res.json({ move: '/' })
+                res.status(200).json({ move: '/' })
                 console.log("로그인 성공")
               }else{
                 connection.release();
-                res.json({ db: err })
+                res.status(400).json({err: '1', contents: '잘못된 값임' })
                 console.log("db err")
               }
             })
           } else {
             console.log("로그인 실패")
             connection.release();
-            res.json({ login: 'fail' })
+            res.status(401).json({ err: '3', contents: '이메일나 비번 틀림' })
           }
         } else {
           console.log("에러: " + err)
           connection.release();
-          res.json({ db: 'err' })
+          res.status(400).json({ err: '1', contents: '잘못된 값임' })
         }
       })
     } else {
-      connection.release();
+     
       console.log("풀에러: " + err)
-      res.json({ pool: 'err' })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -326,7 +317,7 @@ app.get('/logout', (req, res) => {
 
   req.session.destroy(function (err) {
     console.log("로그아웃");
-    res.json({ move: '/' })
+    res.status(200).json({ move: '/' })
   });
 })
 
@@ -337,17 +328,11 @@ app.get('/chosenAgree', (req, res) => {
   if (req.query.chose == 1) {
     req.session.chosenAgree = 1
     console.log('약관동의: ' + req.session.cookie._expires)
-    res.json({
-      chosenAgree: req.query.chose,
-      move: '/member/join'
-    })
+    res.status(200).json({ move: '/member/join'})
   } else {
     req.session.chosenAgree = 0
     console.log(req.session.chosenAgree)
-    res.json({
-      chosenAgree: req.query.chose,
-      move: '/member/join'
-    })
+    res.status(200).json({ move: '/member/join'})
   }
 
 })
@@ -383,23 +368,23 @@ app.post('/findPw', (req, res) => {
                       await func.SendCheckEmail(req.body.pw_email, ran, 0)
                       connection.release();
                       console.log("DB Connection Succeeded 비번 테이블")
-                      res.json({ findPw: " Succeeded" })
+                      res.status(200).json({ findPw: " ok" })
                     } else {
                       connection.release();
                       console.log("에러")
-                      res.json({ db: " err" })
+                      res.status(400).json({ err: '1', contents: '잘못된 값임' })
                     }
                   })
                 } else {
                   connection.release();
                   console.log('아이디가 없음')
-                  res.json({ email: "empty" })
+                  res.status(401).json({ err: '3', contents: '없는 이메일' })
                 }
-                console.log("DB Connection Succeeded 아이디 확인")
+                
               } else {
                 connection.release();
                 console.log("DB Connection Failed중복확인")
-                res.json({ db: "DB Connection Failed 중복확인" })
+                res.status(400).json({err: '1', contents: '잘못된 값임' })
               }
             })
             console.log("리솔트가 널 : " + results)
@@ -408,19 +393,19 @@ app.post('/findPw', (req, res) => {
             connection.release();
             console.log("리솔트 : " + results)
             console.log("인증키 두번누름")
-            res.json({ db: "인증키 두번누름" })
+            res.status(401).json({err: '1', contents: '이미 인증키 발송' })
           }
         } else {
           connection.release();
           console.log('err' + err)
           console.log("인증키 두번누름 부분 에러")
-          res.json({ db: "인증키 두번누름 err" })
+          res.status(401).json({ err: '1', contents: '잘못된 값임' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -433,35 +418,35 @@ app.get('/checkPw', (req, res) => {
       connection.query("SELECT * FROM pw_find WHERE pw_key = " + "'" + req.query.send + "'", function (err, results, fields) {
         if (err) {
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값임' })
         } else {
           console.log('results: ' + results)
           //비밀번호 인증키가 있다면
           if (results[0].pw_key == req.query.send) {
             //인증키가 유효하다면
             if (results[0].pw_edit == 0 && results[0].pw_dispose == 0) {
-              //res.redirect("/resetpw")
+              //res.status().redirect("/resetpw")
               req.session.pwSend = req.query.send
               connection.release();
               console.log("리다이렉션.")
-              res.json({ move: "/member/resetPw" })
-              //res.redirect('/')
+              res.status(200).json({ move: "/member/resetPw" })
+              //res.status().redirect('/')
             } else {
               connection.release();
               console.log("이미 만료된 번호입니다. 다시 인증하셈")
-              res.json({ checkPw: "이미 만료된 번호입니다. 다시 인증하셈" })
+              res.status(401).json({ err: '3', contents: '이미 만료된 번호' })
             }
           } else {
             connection.release();
             console.log("인증실패 테이블에 없음")
-            res.json({ checkPw: "fail" })
+            res.status(401).json({ err: '3', contents: '인증실패 테이블에 없음' })
           }
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패'})
     }
   })
 
@@ -484,23 +469,23 @@ app.patch('/resetPw', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log('성공!')
-              res.json({ move: "/member/mypage" })
+              res.status(200).json({ move: "/member/mypage" })
             } else {
               connection.release();
               console.log(err)
-              res.json({ resetPw: "err" })
+              res.status(400).json({ err: '1', contents: '잘못된 값임' })
             }
           })
         } else {
           connection.release();
           console.log("실패")
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값임' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -515,23 +500,23 @@ app.patch('/secede', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log("회원탈퇴");
-              res.json({ move: "/" })
+              res.status(200).json({ move: "/" })
             } else {
               connection.release();
               console.log("세션에러", err);
-              res.json({ session: "err" })
+              res.status(406).json({err: '5', contents: '세션 에러', move: "/" })
             }
           });
         } else {
           connection.release();
           console.log(err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값임' })
         }
       })
     } else {
       connection.release();
       console.log('풀 에러')
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -540,7 +525,7 @@ app.patch('/secede', func.ChkSession, (req, res) => {
 app.post('/checkPw', func.ChkSession, (req, res) => {
   if (req.session.myPw == func.Pass(req.body.pw)) {
     console.log(req.session)
-    res.json({
+    res.status(200).json({
       move: '/member/revise',
       member_email: req.session.myEmail,
       member_name: req.session.myName,
@@ -552,10 +537,7 @@ app.post('/checkPw', func.ChkSession, (req, res) => {
     })
   } else {
     console.log('실패')
-    res.json({
-      pw: 'uncorrect',
-
-    })
+    res.status(401).json({err: '3', contents: '비밀번호 틀림'})
   }
 
 })
@@ -579,12 +561,12 @@ app.patch('/revise', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log("DB Connection Succeeded")
-              res.json({ move: "/member/move" })
+              res.status(200).json({ move: "/member/move" })
 
             } else {
               connection.release();
               console.log("DB Connection Failed")
-              res.json({ revise_db: "err" })
+              res.status(400).json({ err: '1', contents: '잘못된 값' })
               console.log(err)
             }
           })
@@ -597,12 +579,12 @@ app.patch('/revise', func.ChkSession, (req, res) => {
             if (!err) {
               connection.release();
               console.log("DB Connection Succeeded pw")
-              res.json({ revise: "ok" })
+              res.status(200).json({ move: "/member/move"  })
 
             } else {
               connection.release();
               console.log("DB Connection Failed")
-              res.json({ revise_db: "err" })
+              res.status(400).json({err: '1', contents: '잘못된 값' })
               console.log(err)
             }
           })
@@ -610,13 +592,13 @@ app.patch('/revise', func.ChkSession, (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결 실패' })
       }
 
     })
   } else {
     console.log("전화번호가 형식에 맞지않음")
-    res.json({ phone_num: "err" })
+    res.status(401).json({ err: '3', contents: '전화번호가 형식에 맞지않음' })
   }
 
 })
@@ -627,15 +609,15 @@ app.get('/myPoint', func.ChkSession, (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (err) {
-      res.json({ pool: err })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     } else {
       connection.query("select member_rank, use_point, save_point, member_point from member where member_email = ? ", req.session.myEmail, function (err, result) {
 
         if (err) {
-          res.json({ db: err })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         } else {
-          res.json({
-            myPoint: 'ok',
+          res.status(200).json({
+           
             member_rank: result[0].member_rank,
             use_point: result[0].use_point,
             save_point: result[0].save_point,
@@ -655,7 +637,7 @@ app.get('/usePoint', func.ChkSession, (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (err) {
-      res.json({ pool: err })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     } else {
       var sql = "UPDATE member SET member_point =  member_point-1000 , use_point =  use_point + 1000 WHERE member_email = ?;"+
       "INSERT INTO ideapf.point(member_email, use_date, use_contents) VALUE (? , now() , '상품권 1만원');"
@@ -663,9 +645,9 @@ app.get('/usePoint', func.ChkSession, (req, res) => {
       connection.query(sql, param, function (err, result) {
 
         if (err) {
-          res.json({ db: err })
+          res.status(400).json({  err: '3', contents: '잘못된 값' })
         } else {
-          res.json({
+          res.status(200).json({
             usePoint: 'ok'
             
           })
@@ -681,7 +663,7 @@ app.get('/usePointLog', func.ChkSession, (req, res) => {
   pool.getConnection(function (err, connection) {
     if (err) {
       connection.release();
-      res.json({ pool: err })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     } else {
       var sql = "SELECT count(use_contents) as num FROM ideapf.point WHERE member_email = ?"
       var param = [req.session.myEmail]
@@ -694,9 +676,9 @@ app.get('/usePointLog', func.ChkSession, (req, res) => {
             connection.query(sql, param, function (err, result) {
               
               if (err) {
-                res.json({ db: 'err' })
+                res.status(400).json({ err: '1', contents: '잘못된 값' })
               } else {
-                res.json({
+                res.status(200).json({
                   usePoint: result,
                   postNum: postNum
                   
@@ -706,14 +688,14 @@ app.get('/usePointLog', func.ChkSession, (req, res) => {
           }else{
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           }
             
             
           
         } else {
           connection.release();
-          res.json({ db: 'err' })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
       })
         
@@ -728,7 +710,7 @@ app.get('/savePointLog', func.ChkSession, (req, res) => {
   var limit = 15 * (req.query.pageNum - 1)
   pool.getConnection(function (err, connection) {
     if (err) {
-      res.json({ pool: err })
+      res.status(400).json({ err: '2', contents: 'db 연결실패' })
     } else {
       var sql = "SELECT count(idea_id) as num FROM idea WHERE member_email = ? and idea_delete = 0 and add_point > 0"
       var param = [req.session.myEmail]
@@ -739,18 +721,18 @@ app.get('/savePointLog', func.ChkSession, (req, res) => {
             var sql = "SELECT idea_id, idea_date, idea_title  FROM idea WHERE member_email = ? and idea_delete = 0 and add_point > 0 limit ?,?"
             var param = [req.session.myEmail,limit,pageNum]
             connection.query(sql,param,function(err, result){
-              if(err){ res.json({ db: 'err' })}
-              res.json({ result: result,
+              if(err){ res.status(400).json({ err: '1', contents: '잘못된 값' })}
+              res.status(200).json({ result: result,
                         postNum: postNum
             })
             })
           }else{
-            res.json({ result: 'empty' })
+            res.status(400).json({ result: 'empty' })
           }
             
           
         } else {
-          res.json({ db:'err' })
+          res.status(400).json({ err: '1', contents: '잘못된 값' })
         }
       })
     }
@@ -778,26 +760,26 @@ app.get('/myIdea', func.ChkSession, (req, res) => {
 
               if (!err) {
                 connection.release();
-                res.json({
+                res.status(200).json({
                   result: result,
                   postNum: postNum
                 })
               } else {
                 connection.release();
                 console.log("에러:" + err)
-                res.json({ db: "err" })
+                res.status(400).json({ err: '1', contents: '잘못된 값' })
               }
             })
           } else {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           }
 
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({  err: '1', contents: '잘못된 값'})
         }
 
 
@@ -805,7 +787,7 @@ app.get('/myIdea', func.ChkSession, (req, res) => {
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({  err: '3', contents: 'db 연결실패' })
 
     }
 
@@ -821,33 +803,34 @@ app.get('/myIdea/deTail', func.ChkSession, (req, res) => {
       var param = [req.query.send,req.query.send]
       connection.query(sql, param, function (err, result) {
 
-         if(result[0].member_email = req.session.myEmail){
+         if(result[0].member_email = req.session.myEmail || req.session.adMyEmail != null){
           if (!err) {
             connection.release();
-            res.json({
+            res.status(200).json({
               result: result
             })
           } else {
             connection.release();
             console.log("에러:" + err)
-            res.json({ db: "err" })
+            res.status(400).json({  err: '1', contents: '잘못된 값' })
           }
           
         }else{
           connection.release();
             console.log("본인 아이디 아님" )
-            res.json({ myIdea: "fail" })
+            res.status(400).json({  err: '3', contents: '본인 아이디 아님' })
         }
         
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({   err: '2', contents: 'db 연결실패' })
     }
 
   })
 })
+
 
 
 //내 아이디어 등록하기 -> 내 아이디어 페이지로 이동
@@ -865,17 +848,17 @@ app.post('/myIdea/ideaPush', func.ChkSession, upload.array('sendImg'), (req, res
           if (!err) {
             connection.release();
             console.log("성공")
-            res.json({ notice: "ok" })
+            res.status(200).json({ notice: "ok", move: '/myIdea' })
           } else {
             connection.release();
             console.log(req.body.title)
-            res.json({ db: err })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   } else {
@@ -901,12 +884,12 @@ app.post('/myIdea/ideaPush', func.ChkSession, upload.array('sendImg'), (req, res
             connection.query(newsql, param, function (err, result) {
               if (!err) {
                 connection.release();
-                res.json({ notice: "ok" })
+                res.status(200).json({ notice: "ok", move: '/myIdea' })
 
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: err })
+                res.status(400).json({ err: '1', contents: '잘못된 값'})
               }
 
             })
@@ -916,14 +899,14 @@ app.post('/myIdea/ideaPush', func.ChkSession, upload.array('sendImg'), (req, res
           } else {
             connection.release();
             console.log(req.body.title)
-            res.json({ 첫db: err })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
 
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   }
@@ -968,24 +951,24 @@ app.patch('/myIdea/ideaReset', func.ChkSession, upload.array('sendImg'), (req, r
                 connection.query(sql, param, function (err, result) {
                   if(!err){
                     
-                    res.json({result:"ok"})
+                    res.status(200).json({result:"ok", move: '/myIdea'})
                     connection.release();
                   }else{
                     
-                    res.json({db:err})
+                    res.status(400).json({err: '1', contents: '잘못된 값'})
                     connection.release();
                   }
                 })
           } else {
             connection.release();
             
-            res.json({ db: err })
+            res.status(400).json({err: '1', contents: '잘못된 값' })
           }
         })
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({err: '2', contents: 'db 연결실패' })
       }
     })
   
@@ -1012,7 +995,7 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
             if(result[0]==null){
               
               connection.release();
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             }else{
               var newResult = result
               
@@ -1025,14 +1008,14 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
                 console.log("result[0].num:"+result[0].num)
                 connection.release();
                 console.log("result:" + newResult)
-                res.json({ result: newResult,
+                res.status(200).json({ result: newResult,
                   postNum: postNum
                 })
                 
               } else {
                 connection.release();
                 console.log(err)
-                res.json({ db: "err" })
+                res.status(400).json({ err: '1', contents: '잘못된 값' })
               }
               
             })
@@ -1040,7 +1023,7 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
           }else{
             connection.release();
             console.log(err)
-            res.json({ db: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
           
           
@@ -1048,12 +1031,12 @@ app.get('/myIdea/search', func.ChkSession, (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   }else{
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
   })
   
@@ -1071,23 +1054,23 @@ app.get('/myIdea/download', function (req, res) {
           if (result[0] != null) {
 
             var filePath = result[0].idea_file_path
-            res.download(filePath)
+            res.status(200).download(filePath)
           } else {
 
             console.log("에러:" + err)
-            res.json({ file: "err" })
+            res.status(400).json({ err: '1', contents: '잘못된 값' })
           }
 
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({err: '1', contents: '잘못된 값' })
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패'})
     }
   })
 
@@ -1113,31 +1096,31 @@ app.get('/myInter', func.ChkSession, (req, res) => {
               if(!err){
                 connection.release();
             console.log("result:" + 0)
-            res.json({ myInter : result ,
+            res.status(200).json({ myInter : result ,
                       postNum: postNum
                      })
               }else{
                 connection.release();
             console.log("myInter err")
-            res.json({ myInter: "err" })
+            res.status(400).json({err: '1', contents: '잘못된 값' })
               }
             })
           } else {
             connection.release();
             console.log("result:" + 0)
-            res.json({ result: "empty" })
+            res.status(400).json({ result: "empty" })
           }
         } else {
           connection.release();
           console.log("db 에러")
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
       })
 
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
   })
 })
@@ -1151,19 +1134,19 @@ app.get('/myInter/deTail', func.ChkSession, (req, res) => {
       connection.query(sql, param, function (err, result) {
         if (!err) {
           connection.release();
-          res.json({
+          res.status(200).json({
             result: result
           })
         } else {
           connection.release();
           console.log("에러:" + err)
-          res.json({ db: "err" })
+          res.status(400).json({ err: '1', contents: '잘못된 값'})
         }
       })
     } else {
       connection.release();
       console.log("풀 에러")
-      res.json({ pool: "err" })
+      res.status(400).json({ err: '2', contents: 'db 연결실패'})
     }
   })
 })
@@ -1188,7 +1171,7 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
               
               connection.release();
               console.log("result:" + 0)
-              res.json({ result: "empty" })
+              res.status(400).json({ result: "empty" })
             }else{
               
               var newResult = result
@@ -1204,7 +1187,7 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
                   
                   connection.release();
                   console.log("result:" + newResult)
-                  res.json({ result: newResult,
+                  res.status(200).json({ result: newResult,
                     postNum: postNum
                   })
                   
@@ -1214,7 +1197,7 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
                 } else {
                   connection.release();
                   console.log(err)
-                  res.json({ db: "err" })
+                  res.status(400).json({ err: '1', contents: '잘못된 값' })
                 }
                 
               })
@@ -1223,7 +1206,7 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
             }else{
               connection.release();
               console.log(err)
-              res.json({ db: "err" })
+              res.status(400).json({ err: '1', contents: '잘못된 값' })
             }
             
             
@@ -1233,12 +1216,12 @@ app.get('/myInter/search', func.ChkSession, (req, res) => {
       } else {
         connection.release();
         console.log("풀 에러")
-        res.json({ pool: "err" })
+        res.status(400).json({ err: '2', contents: 'db 연결실패' })
       }
     })
   }else{
     console.log("검색어 공백")
-    res.json({ result: "검색어 공백" })
+    res.status(400).json({ result: "empty" })
   }
   })
   
