@@ -95,7 +95,7 @@ func.adChkSession =function(req, res, next) {
 
     console.log('만료됨')
     
-    return res.status(400),json({move: '/',
+    return res.status(400).json({move: '/',
     ChkSession: "false" 
   })
   } else {
