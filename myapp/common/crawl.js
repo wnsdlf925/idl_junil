@@ -33,13 +33,14 @@ cron.schedule('*/40 * * * * *', async() => {
 var crawl = {}
 
 async function fizz () {
-    
+  console.log("22222222222222222")
   let indexnum = 1
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     headless: false
   });
   const page = await browser.newPage();
+  console.log("fiz")
  
   let data = [];
   while (nextPage) {
@@ -97,8 +98,9 @@ return Promise.resolve(data);
 
 
 crawl.inserCrawl = async function() {
-  
+  console.log("111111111111111111")
   const data = await fizz();
+  console.log("333333333333")
   var firLength = data.length
   var secLength 
   var newsql = ""
@@ -111,7 +113,7 @@ crawl.inserCrawl = async function() {
       secLength = data[i].length
       
       for(var j = 0; j <secLength; j++){
-        
+        console.log("4444444444444")
         newsql = newsql + "insert INTO anno (anno_title, anno_contents, anno_date, anno_link, anno_ref) Value (?,?,?,?,'강원대학교');"
         ex = ex.concat(data[i][j].name, data[i][j].contents, data[i][j].date, data[i][j].link)
         
@@ -129,6 +131,7 @@ crawl.inserCrawl = async function() {
       connection.query(newsql, ex, function (err, result) {
         if (!err) {
           connection.release();
+          console.log("555555555555555555")
           resolve(true) 
         } else {
           connection.release();
