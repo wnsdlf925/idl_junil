@@ -20,3 +20,8 @@
 **ngram = 용량이 큼, 검색 잘함**
 https://gongzza.github.io/database/mysql-fulltext-search/
 **프론트에서 한글 인코딩해야 할 수도, 파일이름도**
+**리눅스 pupteer x display 설치**
+sudo apt-get autoremove
+sudo apt-get update
+sudo apt-get install xvfb
+xvfb-run —auto-servernum npm start

@@ -14,6 +14,7 @@ let storage = multer.diskStorage({
     },
     filename: function(req, file, callback){
         console.log("file.originalname: "+file.originalname)
+        
         let extension = path.extname(file.originalname);
         let basename = path.basename(file.originalname, extension);
         callback(null, basename + "-" + Date.now() + extension);
