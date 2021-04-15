@@ -40,7 +40,7 @@ async function fizz () {
     headless: false
   });
   const page = await browser.newPage();
-  console.log("fiz")
+  console.log("page: "+page)
  
   let data = [];
   while (nextPage) {
