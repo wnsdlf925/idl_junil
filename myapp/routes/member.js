@@ -458,7 +458,7 @@ app.patch('/resetPw', func.ChkSession, (req, res) => {
 
   pool.getConnection(function (err, connection) {
     if (!err) {
-      b
+      
       var sql = "UPDATE member SET member_pw = ? WHERE member_email IN (select member_email from pw_find where pw_key = ?)"
       var param = [func.Pass(req.body.reset_pw), req.session.pwSend]
       console.log('req.body.reset_pw: ' + req.body.reset_pw)
