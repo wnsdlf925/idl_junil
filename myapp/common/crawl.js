@@ -48,10 +48,13 @@ async function fizz () {
     await page.goto(newUrl);
     data.push(await getAll(page));
     indexnum++
+    console.log("fiz111111111111111111")
   }
   indexnum = 1
   nextPage = true
+  console.log("fiz22222222222222")
   await browser.close();
+  console.log("fiz3333333333333333")
   return Promise.resolve(data);
 
 };
