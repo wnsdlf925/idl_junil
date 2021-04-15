@@ -422,7 +422,7 @@ app.get('/checkPw', (req, res) => {
         } else {
           console.log('results: ' + results)
           //비밀번호 인증키가 있다면
-          if (results[0].pw_key == req.query.send) {
+          if (results[0] != null) {
             //인증키가 유효하다면
             if (results[0].pw_edit == 0 && results[0].pw_dispose == 0) {
               //res.status().redirect("/resetpw")
