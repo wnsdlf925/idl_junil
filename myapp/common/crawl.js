@@ -20,10 +20,10 @@ moment.tz.setDefault("Asia/Seoul");
 var cron = require('node-cron');
 
 
-cron.schedule('*/40 * * * * *', async() => {
-//inserCrawl()
-// await func.insertRank()
-//  checkCrawl()
+cron.schedule('* * */24 * * *', async() => {
+
+ await func.insertRank()
+  checkCrawl()
 //랭킹
 });
 
@@ -33,7 +33,7 @@ cron.schedule('*/40 * * * * *', async() => {
 var crawl = {}
 
 async function fizz () {
-  console.log("22222222222222222")
+
   let indexnum = 1
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -44,7 +44,7 @@ async function fizz () {
  
   let data = [];
   while (nextPage) {
-    console.log("fiz111111111111111111")
+
     newUrl = oriUrl + indexnum
     await page.goto(newUrl);
     data.push(await getAll(page));
@@ -52,22 +52,22 @@ async function fizz () {
   }
   indexnum = 1
   nextPage = true
-  console.log("fiz22222222222222")
+
   await browser.close();
-  console.log("fiz3333333333333333")
+
   return Promise.resolve(data);
 
 };
 
 async function getAll(page) {
 let data = [];
-console.log("getAll")
+
 const number = await page.$$eval("#bbsWrap > table > tbody > tr ", (data) => data.length);
-console.log("getAll111111111111111111")
+
 // tr태그의 개수를 세어서 줄의 개수를 얻은 후에
 for (let i = 0; i < number; i++) {
   data.push(await getOne(page, i + 1));
-  console.log("getAll222222222222222222")
+
   // 각 줄의 정보를 얻어서 배열에 Push
 }
 return Promise.resolve(data);
@@ -76,23 +76,23 @@ return Promise.resolve(data);
 async function getOne(page, index) {
 
 let data = {};
-console.log("getone")
+
 
 data.name = await page.$eval("#bbsWrap > table > tbody > tr:nth-child(" + index + ") > td.tit > a", (data) => data.title);
 data.link = await page.$eval("#bbsWrap > table > tbody > tr:nth-child(" + index + ") > td.tit > a", (data) => data.href);
 data.date = await page.$eval("#bbsWrap > table > tbody > tr:nth-child(" + index + ") > td.dt", (data) => data.textContent);
 data.num = await page.$eval("#bbsWrap > table > tbody > tr:nth-child(" + index + ") > td.no", (data) => data.textContent);
-console.log("getone1111111111111")
+
 if (data.num == 1) {
   nextPage = false
 }
-console.log("getone222222222222222222222222222222")
+
 await page.goto(data.link);
 rawcontents = await page.$eval("#oxbbsPrintArea > div > div.note  ", (data) => data.innerHTML)
 data.contents = rawcontents.replace(/src="_/gi, "src=\"https://cse.kangwon.ac.kr/")
 //await page.$eval("#oxbbsPrintArea > div > div.note > div > a > img");
 await page.goto(newUrl);
-console.log("getone33333333333333333333333")
+
 return Promise.resolve(data);
 
 
