@@ -522,7 +522,7 @@ app.patch('/secede', func.ChkSession, (req, res) => {
 })
 
 //개인정보수정 전 비밀번호 확인 -> 수정페이지로 이동
-app.post('/checkPw', func.ChkSession, (req, res) => {
+app.post('/checkInfo', func.ChkSession, (req, res) => {
   if (req.session.myPw == func.Pass(req.body.pw)) {
     console.log(req.session)
     res.status(200).json({
