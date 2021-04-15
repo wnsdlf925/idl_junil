@@ -106,7 +106,7 @@ app.post('/joinAuth', (req, res) => {
 
               if (!err) {
                 //이미 가입한 이메일인지 확인
-                if (result[0] == null) {
+                if (result[0]== null) {
                   var ran = Math.random().toString(36).substr(2, 8);
                   var et = new Date();
                   //이메일 인증 테이블에 넣기
@@ -147,10 +147,8 @@ app.post('/joinAuth', (req, res) => {
                 connection.release();
                 res.status(400).json({ err: '1', contents: '잘못된 값임' })
               }
-
             })
             console.log("리솔트가 널 : " + results)
-
           } else {
             console.log("리솔트 : " + results)
             console.log("인증키 두번누름")
@@ -169,7 +167,6 @@ app.post('/joinAuth', (req, res) => {
       connection.release();
       res.status(400).json({err: '2', contents: 'db 연결실패' })
     }
-
     
   })
 

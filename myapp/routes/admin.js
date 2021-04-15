@@ -1011,9 +1011,9 @@ app.get('/contact/search', func.adChkSession ,(req, res) => {
         var param = [req.query.send + '*', limit, pageNum, req.query.send + '*']
         connection.query(sql, param, function (err, result) {
         if (!err) {
-          if (result[0] == null) {
+          if (result[0][0] == null) {
             connection.release();
-            console.log("result:" + 0)
+            console.log("result:" +result[0].contact_title)
             res.status(400).json({ result: "empty" })
           } else {
             var postNum = func.checkPage(result[1][0].num)
@@ -1463,7 +1463,8 @@ app.get('/memberInfo/search', func.adChkSession ,(req, res) => {
         var param = [req.query.send + '*', req.query.send + '*',  limit, pageNum, req.query.send + '*', req.query.send + '*']
         connection.query(sql, param, function (err, result) {
         if (!err) {
-          if (result[0] == null) {
+        
+          if (result[0].myEmail== null) {
             connection.release();
             console.log("result:" + 0)
             res.status(400).json({ result: "empty" })
