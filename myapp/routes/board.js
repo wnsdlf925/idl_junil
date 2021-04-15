@@ -446,7 +446,7 @@ app.post('/cs/csUpload', upload.array('sendImg'), function (req, res) {
           if (!err) {
             connection.release();
             console.log("성공")
-            res.status(200).json({ notice: "ok" })
+            res.status(200).json({ cs: "ok" })
           } else {
             connection.release();
             console.log(req.body.title)
