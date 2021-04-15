@@ -44,11 +44,11 @@ async function fizz () {
  
   let data = [];
   while (nextPage) {
+    console.log("fiz111111111111111111")
     newUrl = oriUrl + indexnum
     await page.goto(newUrl);
     data.push(await getAll(page));
     indexnum++
-    console.log("fiz111111111111111111")
   }
   indexnum = 1
   nextPage = true
@@ -61,6 +61,7 @@ async function fizz () {
 
 async function getAll(page) {
 let data = [];
+console.log("getAll")
 const number = await page.$$eval("#bbsWrap > table > tbody > tr ", (data) => data.length);
 
 // tr태그의 개수를 세어서 줄의 개수를 얻은 후에
