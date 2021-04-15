@@ -24,10 +24,11 @@ const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z
 var cron = require('node-cron');
 
 
-cron.schedule('*/40 * * * * *', async() => {
+cron.schedule('* 40 2 * * *', async() => {
 //inserCrawl()
 // await func.insertRank()
 //  checkCrawl()
+console.log("dddd")
 //랭킹
 });
 
