@@ -918,59 +918,67 @@ app.post('/myIdea/ideaPush', func.ChkSession, upload.array('sendImg'), (req, res
 
 //내 아이디어 수정 -> 내 아이디어 페이지로 이동
 app.patch('/myIdea/ideaReset', func.ChkSession, upload.array('sendImg'), (req, res) => {
- 
 
 //파일 삭제 -> 업데이트
-  
-  
-    pool.getConnection(function (err, connection) {
+pool.getConnection(function (err, connection) {
+  if (!err) {
+    
+    var sql =  "select *  FROM idea_file_dir WHERE idea_id=?;"
+    var param = [req.body.idea_id]
+    connection.query(sql, param, function (err, result) {
       if (!err) {
         
-        var sql =  "select *  FROM idea_file_dir WHERE idea_id=?;"
-        var param = [req.body.idea_id]
-        connection.query(sql, param, function (err, result) {
-          if (!err) {
-            console.log(" result[i].idea_file_path: "+ result[0].idea_file_path)
-            
-            var i = 0
-            while(result[i]!=null){
+        var newsql = "UPDATE idea_log SET idea_edit_date = now(), idea_contents = (SELECT idea_contents from idea WHERE idea_id = ?) WHERE idea_id = ?;" +
+        "UPDATE idea SET idea_title = ? , idea_contents = ? WHERE idea_id = ?;" + "delete from idea_file_dir where idea_id= ?; "
+        var newparam = [req.body.idea_id, req.body.idea_id, req.body.idea_title, req.body.idea_contents, req.body.idea_id,req.body.idea_id ]
+        
+        var i = 0
+        var j = 0
+        while(result[i]!=null){
+          //파일삭제
+          fs.unlink("./"+ result[i].idea_file_path, function(err){
+            if( err ) {  console.log(err)}
+            console.log('file delete');
+          });
+          i++
+        }
+        
+        while(req.files[j]!=null){
+          
+          newsql += "INSERT INTO idea_file_dir(idea_file_name, idea_file_path, idea_id) VALUE (?,?,?);"
+          console.log("req.files[i].originalname: "+req.files[j].originalname)
+          newparam = newparam.concat(req.files[j].originalname, req.files[j].path, req.body.idea_id)
+          
+          j++
+        }
+       
+        console.log("newparam: "+newparam)
+        
+        
+        connection.query(newsql, newparam, function (err, result) {
               
-              
-              fs.unlink("./"+ result[i].idea_file_path, function(err){
-                if( err ) {  console.log(err)}
-                console.log('file delete');
+              if(!err){
                 
-              });
-              console.log("성공")
-              i++
-            }
-            
-            var sql = "UPDATE idea_log SET idea_edit_date = now(), idea_contents = (SELECT idea_contents from idea WHERE idea_id = ?) WHERE idea_id = ?;" +
-                  "UPDATE idea SET idea_title = ? , idea_contents = ? WHERE idea_id = ?;" + "UPDATE idea_file_dir SET idea_file_name=?,idea_file_path=? WHERE idea_id = ?;"
-                var param = [ req.body.idea_id, req.body.idea_id, req.body.idea_title, req.body.idea_contents, req.body.idea_id, req.files[0].originalname, req.files[0].path, req.body.idea_id]
-                connection.query(sql, param, function (err, result) {
-                  if(!err){
-                    
-                    res.status(200).json({result:"ok", move: '/myIdea'})
-                    connection.release();
-                  }else{
-                    
-                    res.status(400).json({err: '1', contents: '잘못된 값'})
-                    connection.release();
-                  }
-                })
-          } else {
-            connection.release();
-            
-            res.status(400).json({err: '1', contents: '잘못된 값' })
-          }
-        })
+                connection.release();
+                res.status(200).json({result:"ok"})
+              }else{
+                connection.release();
+                res.status(400).json({ err: '1', contents: '잘못된 값',err:err})
+              }
+            })
       } else {
         connection.release();
-        console.log("풀 에러")
-        res.status(400).json({err: '2', contents: 'db 연결실패' })
+        
+        res.status(400).json({  err: '1', contents: '잘못된 값',err:err })
       }
     })
+  } else {
+    connection.release();
+    console.log("풀 에러")
+    res.status(400).json({  err: '2', contents: 'db 연결실패'})
+  }
+})
+
   
 
 })

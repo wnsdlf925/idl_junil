@@ -72,18 +72,19 @@ func.insertRank = function(){
  func.ChkSession =function(req, res, next) {
 
   // 만료 확인 후 세션 삭제 
-  if (req.session.myEmail == null) {
-
-    console.log('만료됨')
+  if (req.session.adMyEmail != null) {
+    console.log('유효함')
+    return next()
+  
+  } else if(req.session.myEmail == null){
     
+    console.log('만료됨')
     return res.status(400).json({move: '/',
     ChkSession: "false" 
   })
-  } else {
 
+  }else{
     console.log('유효함')
-
-
     return next()
   }
 }

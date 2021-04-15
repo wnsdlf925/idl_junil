@@ -24,12 +24,15 @@ const realEmail = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z
 var cron = require('node-cron');
 
 
-cron.schedule('* 40 2 * * *', async() => {
+cron.schedule('* * 23 * * *', async() => {
 //inserCrawl()
 // await func.insertRank()
 //  checkCrawl()
 console.log("dddd")
 //랭킹
+},{
+  scheduled: true,
+   timezone: "Asia/Seoul"
 });
 
 
@@ -1215,39 +1218,50 @@ app.patch('/notice/Reset', func.adChkSession, upload.array('sendImg'), (req, res
           var param = [req.body.notice_id]
           connection.query(sql, param, function (err, result) {
             if (!err) {
-              console.log(" result[i].notice_file_path: "+ result[0].notice_file_path)
               
+              var newsql = "UPDATE notice_log SET notice_edit_date = now(), notice_before_contents = (SELECT notice_contents from notice WHERE notice_id = ?) WHERE notice_id = ?;" +
+                    "UPDATE notice SET notice_title = ? , notice_contents = ? WHERE notice_id = ?;" +"delete from notice_file_dir WHERE notice_id = ?;"
+              var newparam = [req.body.notice_id, req.body.notice_id, req.body.notice_title, req.body.notice_contents, req.body.notice_id, req.body.notice_id ]
+              console.log("111111111111111111111111111 ")
               var i = 0
+              var j = 0
               while(result[i]!=null){
-                
                 //파일삭제
                 fs.unlink("./"+ result[i].notice_file_path, function(err){
                   if( err ) {  console.log(err)}
                   console.log('file delete');
-                  
                 });
-                
                 i++
               }
+              console.log("22222222222222222222")
+              while(req.files[j]!=null){
+                newsql += "INSERT INTO notice_file_dir(notice_file_name, notice_file_path, notice_id) VALUE (?,?,?);"
+                console.log("req.files[i].originalname: "+req.files[j].originalname)
+                newparam = newparam.concat(req.files[j].originalname, req.files[j].path, req.body.notice_id)
+                // console.log("req.files[i].path: "+req.files[i].path)
+                j++
+              }
+
+              console.log("3333333333333333333333")
+
+              console.log("newparam: "+newparam)
               
-              var sql = "UPDATE notice_log SET notice_edit_date = now(), notice_before_contents = (SELECT notice_contents from notice WHERE notice_id = ?) WHERE notice_id = ?;" +
-                    "UPDATE notice SET notice_title = ? , notice_contents = ? WHERE notice_id = ?;" + "UPDATE notice_file_dir SET notice_file_name=?,notice_file_path=? WHERE notice_id = ?;"
-                  var param = [ req.body.notice_id, req.body.notice_id, req.body.notice_title, req.body.notice_contents, req.body.notice_id, req.files[0].originalname, req.files[0].path, req.body.notice_id]
-                  connection.query(sql, param, function (err, result) {
+              
+              connection.query(newsql, newparam, function (err, result) {
+                    
                     if(!err){
                       
                       connection.release();
                       res.status(200).json({result:"ok"})
                     }else{
-                      
                       connection.release();
-                      res.status(400).json({ err: '1', contents: '잘못된 값'})
+                      res.status(400).json({ err: '1', contents: '잘못된 값',err:err})
                     }
                   })
             } else {
               connection.release();
               
-              res.status(400).json({  err: '1', contents: '잘못된 값' })
+              res.status(400).json({  err: '1', contents: '잘못된 값',err:err })
             }
           })
         } else {

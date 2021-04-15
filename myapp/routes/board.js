@@ -9,6 +9,7 @@ let sess = require('../common/session.js')//세션
 let pool = require('../common/database.js')//db 
 let func = require('../common/func.js');//함수
 let upload = require('../common/upload.js');//파일 업로드
+var fs = require('fs');
 let session = sess.session
 app.use(session)
 const pageNum = 15
@@ -412,7 +413,8 @@ app.get('/cs/detail', (req, res) => {
         if (!err) {
           connection.release();
           res.status(200).json({
-            result: result
+            result: result,
+            session: req.session.myEmail
           })
         } else {
           connection.release();
@@ -514,6 +516,77 @@ app.get('/cs/', func.ChkSession, function (req, res) {
   res.status(200).json({ name: req.session.myName })
 
 })
+
+//문의게시판 수정
+app.patch('/cs/reset', func.ChkSession, upload.array('sendImg'), (req, res) => {
+ 
+  //파일 삭제 -> 업데이트
+      pool.getConnection(function (err, connection) {
+        if (!err) {
+          
+          var sql =  "select *  FROM cs_file_dir WHERE cs_id=?;"
+          var param = [req.body.cs_id]
+          connection.query(sql, param, function (err, result) {
+            if (!err) {
+              
+              var newsql = "UPDATE cs_log SET cs_edit_date = now(), cs_before_contents = (SELECT cs_contents from cs WHERE cs_id = ?) WHERE cs_id = ?;" +
+                    "UPDATE cs SET cs_title = ? , cs_contents = ? WHERE cs_id = ?;" +"delete from cs_file_dir WHERE cs_id = ?;"
+              var newparam = [req.body.cs_id, req.body.cs_id, req.body.cs_title, req.body.cs_contents, req.body.cs_id, req.body.cs_id ]
+              console.log("111111111111111111111111111 ")
+              var i = 0
+              var j = 0
+              while(result[i]!=null){
+                //파일삭제
+                fs.unlink("./"+ result[i].cs_file_path, function(err){
+                  if( err ) {  console.log(err)}
+                  console.log('file delete');
+                });
+                i++
+              }
+              console.log("22222222222222222222")
+              while(req.files[j]!=null){
+                newsql += "INSERT INTO cs_file_dir(cs_file_name, cs_file_path, cs_id) VALUE (?,?,?);"
+                console.log("req.files[i].originalname: "+req.files[j].originalname)
+                newparam = newparam.concat(req.files[j].originalname, req.files[j].path, req.body.cs_id)
+                // console.log("req.files[i].path: "+req.files[i].path)
+                j++
+              }
+
+              console.log("3333333333333333333333")
+
+              console.log("newparam: "+newparam)
+              
+              
+              connection.query(newsql, newparam, function (err, result) {
+                    
+                    if(!err){
+                      
+                      connection.release();
+                      res.status(200).json({result:"ok"})
+                    }else{
+                      connection.release();
+                      res.status(400).json({ err: '1', contents: '잘못된 값',err:err})
+                    }
+                  })
+            } else {
+              connection.release();
+              
+              res.status(400).json({  err: '1', contents: '잘못된 값',err:err })
+            }
+          })
+        } else {
+          connection.release();
+          console.log("풀 에러")
+          res.status(400).json({  err: '2', contents: 'db 연결실패'})
+        }
+      })
+    
+  
+  })
+
+
+
+
 
 //문의게시판 다운로드
 app.get('/cs/download', function (req, res) {
