@@ -353,7 +353,7 @@ app.post('/findPw', (req, res) => {
             await connection.query("SELECT member_email FROM member WHERE member_email = " + "'" + req.body.pw_email + "' and member_secede = " + 0, function (err, result, fields) {
               if (!err) {
                 //가입한 이메일인지 확인
-                if (result[0].member_email == req.body.pw_email) {
+                if (result[0] !=null) {
                   console.log(result[0].member_email)
                   console.log(req.body.pw_email)
                   var pt = new Date();
