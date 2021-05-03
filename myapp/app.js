@@ -18,8 +18,10 @@ var adminRouter = require('./routes/admin');
 
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views_ejs'));
+app.set('view engine', 'ejs');
+app.engine('html', require('ejs').renderFile);
+
 
 app.use(logger('dev'));
 app.use(express.json());
