@@ -5,7 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 require('dotenv').config()
 var app = express();
-
+var app1 = express();
 
 
 var indexRouter = require('./routes/index');
@@ -18,18 +18,19 @@ var adminRouter = require('./routes/admin');
 
 
 // view engine setup
-app.set('views', path.join(__dirname, '/dist/myfront'));
-app.set('view engine', 'ejs');
-app.engine('html', require('ejs').renderFile);
+app1.set('views', path.join(__dirname, '/dist/myfront'));
+app1.set('view engine', 'ejs');
+app1.engine('html', require('ejs').renderFile);
+app1.use(express.static(path.join(__dirname, '/dist/myfront')));
 
 
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, '/dist/myfront')));
 
-app.use('/', indexRouter);
+
+app1.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/member', memberRouter);
 app.use('/board', boardRouter);
@@ -52,4 +53,4 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+module.exports = {'app':app,'app1':app1};
