@@ -4,17 +4,21 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 require('dotenv').config()
-var app = express();
-var app1 = express();
+const cors = require('cors');
+// const corsOptions = {
+//   origin: 'http://localhost:80', 
+//   credentials: true, 
+// };
+const app = express();
+const app1 = express();
 
 
-var indexRouter = require('./routes/index');
+
 var usersRouter = require('./routes/users');
 var memberRouter = require('./routes/member');
 var boardRouter = require('./routes/board');
 var adminRouter = require('./routes/admin');
 //var crawlRouter = require('./common/crawl');
-
 
 
 // view engine setup
@@ -24,13 +28,20 @@ app1.engine('html', require('ejs').renderFile);
 app1.use(express.static(path.join(__dirname, '/dist/myfront')));
 
 
+app1.get('*',function(req,res){
+  return res.sendFile(path.join(__dirname,'/dist/myfront/index.html'))
+});
+
+
+
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 
-app1.use('/', indexRouter);
+
 app.use('/users', usersRouter);
 app.use('/member', memberRouter);
 app.use('/board', boardRouter);
@@ -54,3 +65,7 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = {'app':app,'app1':app1};
+
+
+
+
