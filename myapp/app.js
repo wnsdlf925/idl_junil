@@ -34,6 +34,7 @@ app1.get('*',function(req,res){
 
 
 
+
 app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());

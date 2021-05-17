@@ -224,7 +224,7 @@ app.get('/anno/search', (req, res) => {
 
               connection.release();
               console.log("result:" + 0)
-              res.status(400).json({ result: "empty" })
+              res.json({ result: "empty" })
             } else {
 
               var postNum = func.checkPage(result[1][0].num)
@@ -250,7 +250,7 @@ app.get('/anno/search', (req, res) => {
     })
   } else {
     console.log("검색어 공백")
-    res.status(400).json({ result: "empty" })
+    res.json({ result: "searchEmpty" })
   }
 })
 
