@@ -89,13 +89,11 @@ if (data.num == 1) {
 
 await page.goto(data.link);
 rawcontents = await page.$eval("#oxbbsPrintArea > div > div.note  ", (data) => data.innerHTML)
-data.contents = rawcontents.replace(/src="_/gi, "src=\"https://cse.kangwon.ac.kr/")
+data.contents = rawcontents.replace(/src="_/gi, "src=\"https://cse.kangwon.ac.kr/_")
 //await page.$eval("#oxbbsPrintArea > div > div.note > div > a > img");
 await page.goto(newUrl);
 
 return Promise.resolve(data);
-
-
 
 }
 
@@ -238,6 +236,7 @@ let data = {};
     
     console.log("공지")
   }else{
+    
     contin = false
     console.log("stop")
    
@@ -245,11 +244,6 @@ let data = {};
   if (data.num == 1) {
     nextPage = false
   }
-
-
-
-
-
 
 }
 

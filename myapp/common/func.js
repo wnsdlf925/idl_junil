@@ -112,9 +112,6 @@ func.adChkSession =function(req, res, next) {
 
 
 
-
-
-
 //검색 공백체크---------------------------------------------------------------------------------------------------------------------
 func.checkSpace = function(item){
 if(item==0||space.test(item)==true){
